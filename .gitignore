@@ -74,3 +74,14 @@ typings/
 
 # FuseBox cache
 .fusebox/
+
+# Redis DB
+redis-data/
+
+# Mongo DB
+data/
+
+# Http  server
+rest.https
+
+README.md

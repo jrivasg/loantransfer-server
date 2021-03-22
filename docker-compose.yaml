@@ -1,0 +1,41 @@
+version: "3.3"
+services:
+  crdserver:
+    image: node
+    stdin_open: true
+    restart: always
+    expose:
+      - "3005"
+    ports:
+      - "3006:3005"
+    environment:
+      - "PORT=3005"
+    volumes:
+      - ./:/development/crdserver
+      - ./uploads:/home/adminlocal/uploads/pdf/CDR/
+    working_dir: /development/nodeserver
+    command: bash -c "npm start"
+    links:
+      - mongodbCDR
+      - redisCDR
+    depends_on:
+      - mongodbCDR
+      - redisCDR
+  mongodbCDR:
+    image: mongo:latest
+    container_name: "mongodbCDR"
+    restart: always
+    volumes:
+      - ./data/db:/home/adminlocal/applications/databases/mongodbData/mongodbCDR
+    environment:
+      MONGO_INITDB_DATABASE: "rulesApi"
+    ports:
+      - 27017:27017
+    command: mongod --logpath=/dev/null # --quiet
+  redisCDR:
+    container_name: "redisCDR"
+    image: "redis:alpine"
+    volumes:
+      - ./redis-data:/home/adminlocal/applications/databases/redisData/redisCDR
+    ports:
+      - "6379:6379"
