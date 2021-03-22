@@ -1,19 +1,19 @@
 version: "3.3"
 services:
   crdserver:
-    image: node
+    image: node:14
     stdin_open: true
     restart: always
     expose:
       - "3005"
     ports:
-      - "3006:3005"
+      - "3020:3005"
     environment:
       - "PORT=3005"
     volumes:
-      - ./:/development/crdserver
+      - ./:/development/nodeserver-template(jwt-redis-mongo)
       - ./uploads:/home/adminlocal/uploads/pdf/CDR/
-    working_dir: /development/nodeserver
+    working_dir: /development/nodeserver-template(jwt-redis-mongo)
     command: bash -c "npm start"
     links:
       - mongodbCDR
@@ -30,7 +30,7 @@ services:
     environment:
       MONGO_INITDB_DATABASE: "rulesApi"
     ports:
-      - 27017:27017
+      - 27018:27017
     command: mongod --logpath=/dev/null # --quiet
   redisCDR:
     container_name: "redisCDR"
