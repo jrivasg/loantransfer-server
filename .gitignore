@@ -82,6 +82,6 @@ redis-data/
 data/
 
 # Http  server
-rest.https
+rest.http
 
 README.md
