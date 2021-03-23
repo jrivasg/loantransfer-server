@@ -22,7 +22,7 @@ services:
       - mongodbCDR
       - redisCDR
   mongodbCDR:
-    image: mongo:latest
+    image: mongo:4.4
     container_name: "mongodbCDR"
     restart: always
     volumes:
@@ -34,7 +34,7 @@ services:
     command: mongod --logpath=/dev/null # --quiet
   redisCDR:
     container_name: "redisCDR"
-    image: "redis:alpine"
+    image: "redis:6.2-alpine"
     volumes:
       - ./redis-data:/home/adminlocal/applications/databases/redisData/redisCDR
     ports:
