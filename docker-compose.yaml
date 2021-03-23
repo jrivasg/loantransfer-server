@@ -7,7 +7,7 @@ services:
     expose:
       - "3005"
     ports:
-      - "3020:3005"
+      - "3001:3005"
     environment:
       - "PORT=3005"
     volumes:
