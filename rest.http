@@ -1,8 +1,8 @@
-GET http://localhost:3006
+GET http://localhost:3020
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE2MTY0MTAxMTEsImV4cCI6MTYxNjQxMzcxMSwiYXVkIjoiNjA1ODZlNTRlOTA0Mjk0OWE4MGI1MDJhIiwiaXNzIjoiZ2l0LmNvbSJ9.gISXVR8B9sCeEQOzsKf58fM_QdK742wOSrHaI9EA8IU
 
 ###Login Route
-POST http://localhost:3006/auth/login
+POST http://localhost:3001/auth/signin
 Content-Type: application/json
 
 {
@@ -12,7 +12,7 @@ Content-Type: application/json
 
 
 ###Register Route
-POST http://localhost:3006/auth/register
+POST http://localhost:3001/auth/signup
 Content-Type: application/json
 
 {

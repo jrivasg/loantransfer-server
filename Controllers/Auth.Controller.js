@@ -45,8 +45,16 @@ module.exports = {
 
       const accessToken = await signAccessToken(user.id);
       const refreshToken = await signRefreshToken(user.id);
-
-      res.send({ accessToken, refreshToken });
+      // Crear cookie http only
+      res
+        .cookie("refreshToken", refreshToken, {
+          expires: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+          path: "/",
+          //domain: "127.0.0.1",
+          //sameSite: "strict",
+          httpOnly: true,
+        })
+        .send({ accessToken: accessToken });
     } catch (error) {
       if (error.isJoi === true)
         return next(createError.BadRequest("Invalid Username/Password"));
