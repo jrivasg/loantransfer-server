@@ -2,9 +2,9 @@ const express = require("express");
 const router = express.Router();
 const AuthController = require("../Controllers/Auth.Controller");
 
-router.post("/signup", AuthController.register);
+router.post("/signup", AuthController.signup);
 
-router.post("/signin", AuthController.login);
+router.post("/signin", AuthController.signin);
 
 router.post("/refresh-token", AuthController.refreshToken);
 

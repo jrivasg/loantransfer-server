@@ -8,9 +8,10 @@ const cors = require("cors");
 require("./helpers/init_mongodb");
 const { verifyAccessToken } = require("./helpers/jwt_helper");
 require("./helpers/init_redis");
-// require("./helpers/generate_keys"); // Solo una vez para generar las claves para crear los tokens
+//require("./helpers/generate_keys"); // Solo una vez para generar las claves para crear los tokens
 
 const AuthRoute = require("./Routes/Auth.route");
+const UserRoute = require("./Routes/User.route");
 
 const app = express();
 app.use(morgan("dev"));
@@ -24,6 +25,7 @@ app.get("/", verifyAccessToken, async (req, res, next) => {
 });
 
 app.use("/auth", AuthRoute);
+app.use("/user", UserRoute);
 
 app.use(async (req, res, next) => {
   next(createError.NotFound());

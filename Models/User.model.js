@@ -2,18 +2,55 @@ const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
 const bcrypt = require("bcryptjs");
 
-const UserSchema = new Schema({
-  email: {
-    type: String,
-    required: true,
-    lowercase: true,
-    unique: true,
+const UserSchema = new Schema(
+  {
+    email: {
+      type: String,
+      required: true,
+      lowercase: true,
+      unique: true,
+    },
+    password: {
+      type: String,
+      required: true,
+    },
+    displayName: {
+      type: String,
+      required: true,
+    },
+    photoUrl: {
+      type: String,
+      unique: true,
+      default:
+        "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRI7M4Z0v1HP2Z9tZmfQaZFCuspezuoxter_A&usqp=CAU",
+    },
+    emailVerified: {
+      type: Boolean,
+      default: false,
+    },
+    passwordUpdatedAt: {
+      type: Date,
+    },
+    validSince: {
+      type: Date,
+    },
+    disabled: {
+      type: Boolean,
+      default: false,
+    },
+    lastLoginAt: {
+      type: Date,
+    },
+    lastRefreshAt: {
+      type: Date,
+    },
   },
-  password: {
-    type: String,
-    required: true,
-  },
-});
+  {
+    timestamps: true,
+    versionKey: false,
+    minimize: false,
+  }
+);
 
 UserSchema.pre("save", async function (next) {
   try {

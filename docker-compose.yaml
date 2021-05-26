@@ -1,41 +1,41 @@
 version: "3.3"
 services:
-  crdserver:
+  servidorSubastas:
     image: node:lts-alpine
     stdin_open: true
     restart: always
     expose:
-      - "3001"
+      - "3000"
     ports:
-      - "3001:3005"
+      - "3000:3000"
     environment:
-      - "PORT=3005"
+      - "PORT=3000"
     volumes:
-      - ./:/development/nodeserver-template(jwt-redis-mongo)
-      - ./uploads:/home/adminlocal/uploads/pdf/CDR/
-    working_dir: /development/nodeserver-template(jwt-redis-mongo)
-    command: sh -c "npm start"
+      - ./:/development/servidorSubastas
+      - ./uploads:/home/aplicaciones/uploads/
+    working_dir: /development/servidorSubastas
+    command: sh -c "npm install && npm start"
     links:
-      - mongodbCDR
-      - redisCDR
+      - mongodb
+      - redis
     depends_on:
-      - mongodbCDR
-      - redisCDR
-  mongodbCDR:
+      - mongodb
+      - redis
+  mongodb:
     image: mongo:4.4
-    container_name: "mongodbCDR"
+    container_name: "mongodb"
     restart: always
     volumes:
-      - ./data/db:/home/adminlocal/applications/databases/mongodbData/mongodbCDR
+      - ./data/db:/home/aplicaciones/databases/mongodbData/mongodb
     environment:
-      MONGO_INITDB_DATABASE: "rulesApi"
+      MONGO_INITDB_DATABASE: "subastasDB"
     ports:
-      - 27018:27017
+      - 27017:27017
     command: mongod --logpath=/dev/null # --quiet
-  redisCDR:
-    container_name: "redisCDR"
+  redis:
+    container_name: "redis"
     image: "redis:6.2-alpine"
     volumes:
-      - ./redis-data:/home/adminlocal/applications/databases/redisData/redisCDR
+      - ./redis-data:/home/aplicaciones/databases/redisData/redis
     ports:
       - "6379:6379"
