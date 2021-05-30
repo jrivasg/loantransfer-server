@@ -20,8 +20,8 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cors());
 //app.use(cookieParser());
 
-app.get("/", verifyAccessToken, async (req, res, next) => {
-  res.send("Hello from express.");
+app.get("/", /* verifyAccessToken, */ async (req, res, next) => {
+  res.send("Servidor de subastas corriendo");
 });
 
 app.use("/auth", AuthRoute);

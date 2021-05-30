@@ -1,7 +1,8 @@
 const mongoose = require('mongoose')
-
+//"mongodb://superAdmin:kR9LrRe22507BdMg@mongodbSubastas:27017/admin"
 mongoose
-  .connect(process.env.MONGODB_URI, {
+  .connect("mongodb://mongodbSubastas:27017/", {
+    user: process.env.MONGO_USER, pass: process.env.MONGO_PASS,
     dbName: process.env.DB_NAME,
     useNewUrlParser: true,
     useUnifiedTopology: true,

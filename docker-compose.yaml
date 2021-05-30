@@ -29,9 +29,10 @@ services:
       - ./data/db:/home/aplicaciones/databases/mongodbData/mongodbSubastas
     environment:
       MONGO_INITDB_DATABASE: "subastas_db"
+
     ports:
       - 3500:27017
-    command: mongod --logpath=/dev/null # --quiet
+    command: mongod --logpath=/dev/null --auth # --quiet
   redisSubastas:
     container_name: "redisSubastas"
     image: "redis:6.2-alpine"
