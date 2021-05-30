@@ -12,30 +12,30 @@ services:
       - "PORT=3000"
     volumes:
       - ./:/development/servidorSubastas
-      - ./uploads:/home/aplicaciones/uploads/
+      - ./uploads:/home/aplicaciones/uploads/servidorSubastas
     working_dir: /development/servidorSubastas
     command: sh -c "npm install && npm start"
     links:
-      - mongodb
-      - redis
+      - mongodbSubastas
+      - redisSubastas
     depends_on:
-      - mongodb
-      - redis
-  mongodb:
+      - mongodbSubastas
+      - redisSubastas
+  mongodbSubastas:
     image: mongo:4.4
-    container_name: "mongodb"
+    container_name: "mongodbSubastas"
     restart: always
     volumes:
-      - ./data/db:/home/aplicaciones/databases/mongodbData/mongodb
+      - ./data/db:/home/aplicaciones/databases/mongodbData/mongodbSubastas
     environment:
-      MONGO_INITDB_DATABASE: "subastasDB"
+      MONGO_INITDB_DATABASE: "subastas_db"
     ports:
-      - 27017:27017
+      - 3500:27017
     command: mongod --logpath=/dev/null # --quiet
-  redis:
-    container_name: "redis"
+  redisSubastas:
+    container_name: "redisSubastas"
     image: "redis:6.2-alpine"
     volumes:
-      - ./redis-data:/home/aplicaciones/databases/redisData/redis
+      - ./redis-data:/home/aplicaciones/databases/redisData/redisSubastas
     ports:
       - "6379:6379"
