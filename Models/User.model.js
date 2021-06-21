@@ -38,9 +38,9 @@ const UserSchema = new Schema(
       type: Boolean,
       default: false,
     },
-    lastLoginAt: {
-      type: Date,
-    },
+    chat: [{ type: Schema.Types.ObjectId, ref: "chat" }],
+    sale: [{ type: Schema.Types.ObjectId, ref: "sale" }],
+    lastLoginAt: { type: Date },
     lastRefreshAt: {
       type: Date,
     },
