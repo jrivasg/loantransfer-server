@@ -1,7 +1,12 @@
 const express = require("express");
 const app = express();
 const http = require("http").createServer(app);
-const io = require("socket.io")(http);
+const io = require("socket.io")(http, {
+  cors: {
+    origin: ["http://localhost:3000", "https://eb3b292bde61.ngrok.io"],
+  },
+});
+require("./helpers/socket_io")(io);
 
 const morgan = require("morgan");
 const createError = require("http-errors");
@@ -14,6 +19,7 @@ const { verifyAccessToken } = require("./helpers/jwt_helper");
 require("./helpers/init_redis");
 //require("./helpers/generate_keys"); // Solo una vez para generar las claves para crear los tokens
 
+
 const AuthRoute = require("./Routes/Auth.route");
 const UserRoute = require("./Routes/User.route");
 
@@ -23,42 +29,11 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cors());
 //app.use(cookieParser());
 
-// Configuración de socket.io
-io.on("connection", (socket) => {
-  socket.on("login", ({ name, room }, callback) => {
-    const { user, error } = addUser(socket.id, name, room);
-    if (error) return callback(error);
-    socket.join(user.room);
-    socket.in(room).emit("notification", {
-      title: "Someone's here",
-      description: `${user.name} just entered the room`,
-    });
-    io.in(room).emit("users", getUsers(room));
-    callback();
-  });
-
-  socket.on("sendMessage", (message) => {
-    const user = getUser(socket.id);
-    io.in(user.room).emit("message", { user: user.name, text: message });
-  });
-
-  socket.on("disconnect", () => {
-    console.log("User disconnected");
-    const user = deleteUser(socket.id);
-    if (user) {
-      io.in(user.room).emit("notification", {
-        title: "Someone just left",
-        description: `${user.name} just left the room`,
-      });
-      io.in(user.room).emit("users", getUsers(user.room));
-    }
-  });
-});
-
 app.get(
   "/",
   /* verifyAccessToken, */ async (req, res, next) => {
-    res.send("Servidor de subastas corriendo");
+    res.sendFile(__dirname + "/index.html");
+    //res.send("Servidor de subastas corriendo");
   }
 );
 
@@ -84,3 +59,5 @@ const PORT = process.env.PORT || 3000;
 http.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
+module.exports = io;

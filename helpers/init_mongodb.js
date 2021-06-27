@@ -1,8 +1,9 @@
 const mongoose = require('mongoose')
 //"mongodb://superAdmin:kR9LrRe22507BdMg@mongodbSubastas:27017/admin"
 mongoose
-  .connect("mongodb://mongodbSubastas:27017/", {
-    user: process.env.MONGO_USER, pass: process.env.MONGO_PASS,
+  .connect(`mongodb://164.90.164.161:3500/`, {
+    user: process.env.MONGO_USER,
+    pass: process.env.MONGO_PASS,
     dbName: process.env.DB_NAME,
     useNewUrlParser: true,
     useUnifiedTopology: true,
@@ -10,9 +11,9 @@ mongoose
     useCreateIndex: true,
   })
   .then(() => {
-    console.log('mongodb connected.')
+    console.log("mongodb connected.");
   })
-  .catch((err) => console.log(err.message))
+  .catch((err) => console.log(err.message));
 
 mongoose.connection.on('connected', () => {
   console.log('Mongoose connected to db')

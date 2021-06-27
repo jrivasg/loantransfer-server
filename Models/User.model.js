@@ -18,11 +18,11 @@ const UserSchema = new Schema(
       type: String,
       required: true,
     },
+    nplID: {
+      type: String,
+    },
     photoUrl: {
       type: String,
-      unique: true,
-      default:
-        "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRI7M4Z0v1HP2Z9tZmfQaZFCuspezuoxter_A&usqp=CAU",
     },
     emailVerified: {
       type: Boolean,

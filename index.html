@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Socket.IO chat</title>
+    <style>
+      body {
+        margin: 0;
+        padding-bottom: 3rem;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          Helvetica, Arial, sans-serif;
+      }
+
+      #form {
+        background: rgba(0, 0, 0, 0.15);
+        padding: 0.25rem;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        display: flex;
+        height: 3rem;
+        box-sizing: border-box;
+        backdrop-filter: blur(10px);
+      }
+
+      #input {
+        border: none;
+        padding: 0 1rem;
+        flex-grow: 1;
+        border-radius: 2rem;
+        margin: 0.25rem;
+      }
+
+      #input:focus {
+        outline: none;
+      }
+
+      #form > button {
+        background: #333;
+        border: none;
+        padding: 0 1rem;
+        margin: 0.25rem;
+        border-radius: 3px;
+        outline: none;
+        color: #fff;
+      }
+
+      #container {
+        display: flex;
+        height: 93vh;
+      }
+
+      #messages {
+        list-style-type: none;
+        margin: 0;
+        padding: 0;
+        width: 80%;
+        float: left;
+        height: 100%;
+      }
+
+      #messages > li {
+        padding: 0.5rem 1rem;
+      }
+
+      #messages > li:nth-child(odd) {
+        background: #efefef;
+      }
+
+      #participants {
+        list-style-type: none;
+        margin: 0;
+        padding: 5px;
+        width: 20%;
+        float: right;
+        height: 100%;
+        border-left: 3px solid red;
+      }
+
+      #messparticipantsages > li {
+        padding: 0.5rem 1rem;
+      }
+
+      #participants > li:nth-child(odd) {
+        background: #efefef;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="container">
+      <ul id="messages"></ul>
+      <ul id="participants"></ul>
+    </div>
+
+    <form id="form" action="">
+      <input id="input" autocomplete="off" /><button>Send</button>
+    </form>
+    <script src="/socket.io/socket.io.js"></script>
+    <script type="text/javascript">
+      // Configuración de la conexión del socket.io y la info a mandar
+      const npl_id = `user-${new Date().getTime()}`;
+      const URL = "http://localhost:3000";
+      const socket = io(URL, { autoConnect: false });
+      // Registro de cualquier actividad que venga a través de un socket para loggearla
+      socket.onAny((event, ...args) => {
+        console.log(event, args);
+      });
+      // Variable a la que se le añade cualquier atributo para enviar info al servidor en la conexión del socket
+      socket.auth = { npl_id, user_id: "60b3dd8b86288f003dc0c3fb" };
+      socket.connect();
+
+      /****************************************************************************************/
+      var form = document.getElementById("form");
+      var input = document.getElementById("input");
+      var input = document.getElementById("participants");
+
+      form.addEventListener("submit", function (e) {
+        const { input } = e.target;
+        e.preventDefault();
+        //console.log(input.value)
+        if (input.value) {
+          socket.emit("chat message", input.value);
+          input.value = "";
+        }
+      });
+
+      let usersConnected = [];
+      // Recibe la lista de nuevos usuarios conectados al socket, se recibe cada vez que un nuevo usuario se conecta
+      socket.on("user list", (usersList) => {
+        //Añadir usuarios a variable estado de usuarios para saber a quien se puede conectar
+        //console.log('users conected', users)
+        usersConnected = usersList;
+        participants.innerHTML = "";
+        usersList.forEach((user) => {
+          let item = document.createElement("li");
+          item.textContent = user.nplID;
+          participants.appendChild(item);
+        });
+        window.scrollTo(0, document.body.scrollHeight);
+      });
+
+      socket.on("chat list", function (chat) {
+        var item = document.createElement("li");
+        if (chat.nplID === socket.auth.npl_id) {
+          chat.nplID = "me";
+          item.setAttribute("style", "text-align:end");
+        }
+        item.textContent = `${chat.nplID}: ${chat.mssg}`;
+        messages.appendChild(item);
+        window.scrollTo(0, document.body.scrollHeight);
+      });
+    </script>
+  </body>
+</html>
