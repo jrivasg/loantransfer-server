@@ -99,15 +99,15 @@
     <script src="/socket.io/socket.io.js"></script>
     <script type="text/javascript">
       // Configuración de la conexión del socket.io y la info a mandar
-      const npl_id = `user-${new Date().getTime()}`;
-      const URL = "http://localhost:3000";
+      const URL = "http://https://ab0373e46f2f.ngrok.io";
       const socket = io(URL, { autoConnect: false });
       // Registro de cualquier actividad que venga a través de un socket para loggearla
       socket.onAny((event, ...args) => {
         console.log(event, args);
       });
+      const user_id = "60b3dd8b86288f003dc0c3fb";
       // Variable a la que se le añade cualquier atributo para enviar info al servidor en la conexión del socket
-      socket.auth = { npl_id, user_id: "60b3dd8b86288f003dc0c3fb" };
+      socket.auth = { user_id };
       socket.connect();
 
       /****************************************************************************************/
@@ -120,7 +120,10 @@
         e.preventDefault();
         //console.log(input.value)
         if (input.value) {
-          socket.emit("chat message", input.value);
+          socket.emit("chat message", {
+            message: input.value,
+            chat_id: chat_id,            
+          });
           input.value = "";
         }
       });
@@ -134,7 +137,7 @@
         participants.innerHTML = "";
         usersList.forEach((user) => {
           let item = document.createElement("li");
-          item.textContent = user.nplID;
+          item.textContent = user.displayName;
           participants.appendChild(item);
         });
         window.scrollTo(0, document.body.scrollHeight);
@@ -149,6 +152,10 @@
         item.textContent = `${chat.nplID}: ${chat.mssg}`;
         messages.appendChild(item);
         window.scrollTo(0, document.body.scrollHeight);
+      });
+
+      socket.on("conectado",(mesg) => {
+        console.log(mesg)
       });
     </script>
   </body>

@@ -18,7 +18,7 @@ const UserSchema = new Schema(
       type: String,
       required: true,
     },
-    nplID: {
+    socket_id: {
       type: String,
     },
     photoUrl: {

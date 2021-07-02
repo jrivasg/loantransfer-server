@@ -3,7 +3,13 @@ const app = express();
 const http = require("http").createServer(app);
 const io = require("socket.io")(http, {
   cors: {
-    origin: ["http://localhost:3000", "https://eb3b292bde61.ngrok.io"],
+    origin: [
+      "http://localhost",
+      "http://localhost:3000",
+      "http://localhost:9000",
+      "http://83.138.251.60:9000",
+      "https://0506d2264da3.ngrok.io",
+    ],
   },
 });
 require("./helpers/socket_io")(io);
@@ -19,6 +25,24 @@ const { verifyAccessToken } = require("./helpers/jwt_helper");
 require("./helpers/init_redis");
 //require("./helpers/generate_keys"); // Solo una vez para generar las claves para crear los tokens
 
+/* app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE");
+  const allowedOrigins = [
+    "http://localhost:3000",
+    "http://localhost:9000",
+    "http://83.138.251.60:9000",
+  ];
+  const origin = req.headers.origin;
+  if (allowedOrigins.includes(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+  }
+  res.header(
+    "Access-Control-Allow-Headers",
+    "Access-Control-Allow-Origin, withcredentials, Origin, Accept, Accept-Language, Accept-Version, Content-Length, Content-Language', Content-MD5, Content-Type, Credentials, Date, X-Api-Version, X-Response-Time, X-PINGOTHER, X-CSRF-Token, Authorization, X-Requested-With"
+  );
+  res.header("Access-Control-Allow-Credentials", true);
+  next();
+}); */
 
 const AuthRoute = require("./Routes/Auth.route");
 const UserRoute = require("./Routes/User.route");

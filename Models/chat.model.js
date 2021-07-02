@@ -3,19 +3,34 @@ const Schema = mongoose.Schema;
 
 const ChatSchema = new Schema(
   {
-    name: {
-      type: String,
-      required: true,
-    },
-    user_id: { type: Schema.Types.ObjectId, ref: "User" },
-    unread: {
-      type: Number,
-    },
-    time: {
-      type: Date,
-      default: false,
-    },
-    msg: [{ type: Schema.Types.ObjectId, ref: "Message" }],
+    users: [
+      {
+        user_id: {
+          type: Schema.Types.ObjectId,
+          ref: "user",
+        },
+        displayName: { type: String },
+      },
+    ],
+    messages: [
+      {
+        text: {
+          type: String,
+          required: true,
+        },
+        from: {
+          type: { type: Schema.Types.ObjectId, ref: "user" },
+        },
+        time: {
+          type: Date,
+        },
+        msgType: {
+          type: String,
+          enum: ["text", "file"],
+        },
+        unread: { type: Boolean, default: true },
+      },
+    ],
   },
   {
     timestamps: true,
