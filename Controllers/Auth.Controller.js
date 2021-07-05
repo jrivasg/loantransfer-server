@@ -1,5 +1,6 @@
 const createError = require("http-errors");
 const User = require("../Models/User.model");
+const Chat = require("../Models/chat.model")
 const { authSchema } = require("../helpers/validation_schema");
 const {
   signAccessToken,
@@ -46,7 +47,7 @@ module.exports = {
   signin: async (req, res, next) => {
     try {
       const result = await authSchema.validateAsync(req.body);
-      const user = await User.findOne({ email: result.email });
+      const user = await User.findOne({ email: result.email }).populate('chat');
       if (!user) throw createError.NotFound("User not registered");
 
       const isMatch = await user.isValidPassword(result.password);

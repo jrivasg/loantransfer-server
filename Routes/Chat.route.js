@@ -1,29 +1,9 @@
-router.post("/signin", AuthController.signin);
 const express = require("express");
 const router = express.Router();
+const autJWT = require("../helpers/jwt_helper");
+const ChatController = require("../Controllers/Chat.controller");
 
-module.exports = {
-  addMesagge: async (req, res, next) => {
-    try {
-      //console.log(req.payload);
-      const user = await User.findById(req.body.user_id);
-      const chat = await Chat.findById(req.body.user_id);
-      const Message = await User.findById(req.body.user_id);
-      res.status(200).json(user);
-    } catch (error) {
-      next(error);
-    }
-  },
-  getChat: async (req, res, next) => {
-    const { user_id, chat_id } = req.body;
-    //console.log(req.payload);
-    try {
-      // Comprobamos si tiene un chat con esa persona
-      const chat = await Chat.findById(req.body.chat_id);
-      const Message = await User.findById(req.body.user_id);
-      res.status(200).json(user);
-    } catch (error) {
-      next(error);
-    }
-  },
-};
+router.post("/create", autJWT.verifyAccessToken, ChatController.createChat);
+router.get("/getall", autJWT.verifyAccessToken, ChatController.getChats);
+
+module.exports = router;

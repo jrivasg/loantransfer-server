@@ -7,8 +7,7 @@ const io = require("socket.io")(http, {
       "http://localhost",
       "http://localhost:3000",
       "http://localhost:9000",
-      "http://83.138.251.60:9000",
-      "https://0506d2264da3.ngrok.io",
+      "https://85e90cd16ada.ngrok.io",
     ],
   },
 });
@@ -46,6 +45,7 @@ require("./helpers/init_redis");
 
 const AuthRoute = require("./Routes/Auth.route");
 const UserRoute = require("./Routes/User.route");
+const ChatRoute = require("./Routes/Chat.route");
 
 app.use(morgan("dev"));
 app.use(express.json());
@@ -63,6 +63,7 @@ app.get(
 
 app.use("/auth", AuthRoute);
 app.use("/user", UserRoute);
+app.use("/chat", ChatRoute);
 
 app.use(async (req, res, next) => {
   next(createError.NotFound());
