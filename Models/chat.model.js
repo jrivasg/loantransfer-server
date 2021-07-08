@@ -20,10 +20,11 @@ const ChatSchema = new Schema(
           required: true,
         },
         from: {
-          type: { type: Schema.Types.ObjectId, ref: "user" },
+          type: Schema.Types.ObjectId,
+          ref: "user",
         },
         time: {
-          type: Date,
+          type: Number,
         },
         msgType: {
           type: String,

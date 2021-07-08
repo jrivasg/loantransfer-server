@@ -26,5 +26,5 @@ const SaleSchema = new Schema(
   }
 );
 
-const Sale = mongoose.model("message", SaleSchema);
+const Sale = mongoose.model("sale", SaleSchema);
 module.exports = Sale;
