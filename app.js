@@ -3,7 +3,7 @@ const app = express();
 const http = require("http").createServer(app);
 const io = require("socket.io")(http, {
   cors: {
-    origin: *,
+    origin: '*',
   },
 });
 require("./helpers/socket_io")(io);
