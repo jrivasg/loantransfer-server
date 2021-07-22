@@ -17,6 +17,7 @@ const SaleSchema = new Schema(
         text: String,
       },
     ],
+    seller: { type: Schema.Types.ObjectId, ref: "User" },
     final_buyer: { type: Schema.Types.ObjectId, ref: "User" },
   },
   {
