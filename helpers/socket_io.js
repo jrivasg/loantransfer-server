@@ -3,6 +3,7 @@ const Chat = require("../Models/chat.model");
 const User = require("../Models/User.model");
 const JWT = require("jsonwebtoken");
 const NEW_CHAT_MESSAGE_EVENT = "newChatMessage";
+const NEW_BID_EVENT = "newBidEvent";
 let users = [];
 
 module.exports = function (io) {
@@ -72,8 +73,11 @@ module.exports = function (io) {
 
       socket.emit("bid", content["amount"]);
 
-      // broadcast the bid to all clients
-      socket.broadcast.emit("bid", socket.id + "bid: " + content["amount"]);
+      io.in(roomId).emit(NEW_BID_EVENT, {
+        amount: data.body,
+        from: payload.aud,
+        time: Date.now(),
+      });
     });
   });
 };

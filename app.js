@@ -19,12 +19,12 @@ const { verifyAccessToken } = require("./helpers/jwt_helper");
 require("./helpers/init_redis");
 //require("./helpers/generate_keys"); // Solo una vez para generar las claves para crear los tokens
 
-/* app.use((req, res, next) => {
+ /* app.use((req, res, next) => {
   res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE");
   const allowedOrigins = [
     "http://localhost:3000",
     "http://localhost:9000",
-    "http://83.138.251.60:9000",
+    "https://886fb727b703.ngrok.io",
   ];
   const origin = req.headers.origin;
   if (allowedOrigins.includes(origin)) {
@@ -36,7 +36,7 @@ require("./helpers/init_redis");
   );
   res.header("Access-Control-Allow-Credentials", true);
   next();
-}); */
+});  */
 
 const AuthRoute = require("./Routes/Auth.route");
 const UserRoute = require("./Routes/User.route");
