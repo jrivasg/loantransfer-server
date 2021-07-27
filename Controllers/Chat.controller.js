@@ -59,7 +59,6 @@ module.exports = {
                   if (err) return res.json(500).json(err);
                   // Añadimos el chat al usuario previamente encontrado y se devuelve el array
                   user.chat.push(chat);
-                  console.log(user.chat);
                   res.status(200).json(user.chat);
                 }
               );

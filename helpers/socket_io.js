@@ -6,21 +6,12 @@ const NEW_CHAT_MESSAGE_EVENT = "newChatMessage";
 let users = [];
 
 module.exports = function (io) {
-  // Configuración de socket.io
-  /*  io.use((socket, next) => {
-    const npl_id = socket.handshake.auth.npl_id;
-    if (!npl_id) {
-      return next(new Error("invalid id"));
-    }
-    socket.npl_id = npl_id;
-    next();
-  }); */
-
   io.on("connection", async (socket) => {
     console.log("cliente conectado => ", socket.id);
-    
+
     // Join a conversation
     const { roomId, token } = socket.handshake.query;
+    console.log(socket.handshake.query);
     const payload = await verifyAccessToken(token);
 
     socket.join(roomId);
@@ -29,9 +20,10 @@ module.exports = function (io) {
     // Listen for new messages
     socket.on(NEW_CHAT_MESSAGE_EVENT, (data) => {
       // Se guarda cada mensaje que se transmite a traves del socket en el objeto de la conversacion
-      console.log(data);
+      /* console.log("mensaje entrante", data);
+      console.log("roomId", roomId); */
       try {
-        Chat.findOneAndUpdate(
+        Chat.findByIdAndUpdate(
           roomId,
           {
             $push: {
@@ -46,7 +38,7 @@ module.exports = function (io) {
           { new: true },
           (err, doc) => {
             if (err) console.log("Error al guardar el mensaje");
-            console.log(doc);
+            //console.log(doc);
           }
         );
       } catch (error) {
