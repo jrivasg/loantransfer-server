@@ -2,17 +2,6 @@ const createError = require("http-errors");
 const Bid = require("../Models/bid.model");
 
 module.exports = {
-  /* saveMessage: async (req, res, next) => {
-    const { user_id, chat, message } = req.body;
-    try {
-      //console.log(req.payload);
-      const user = await User.findById(req.body.user_id);
-      const chat = user.chat.find();
-      res.status(200).json(user);
-    } catch (error) {
-      next(error);
-    }
-  }, */
   getAll: async (req, res, next) => {
     try {
       //console.log(req.payload);
@@ -37,7 +26,7 @@ module.exports = {
             {
               user_id: invitedUser._id,
               displayName: invitedUser.displayName,
-            },
+            }, 
           ],
           messages: [],
         }).save((err, chat) => {
@@ -63,6 +52,17 @@ module.exports = {
             }
           );          
         });
+    } catch (error) {
+      next(error);
+    }
+  }, */
+  /* saveMessage: async (req, res, next) => {
+    const { user_id, chat, message } = req.body;
+    try {
+      //console.log(req.payload);
+      const user = await User.findById(req.body.user_id);
+      const chat = user.chat.find();
+      res.status(200).json(user);
     } catch (error) {
       next(error);
     }

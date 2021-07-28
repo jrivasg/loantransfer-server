@@ -162,5 +162,5 @@ const BidSchema = new Schema(
   }
 );
 
-const Bid = mongoose.model("bid", SaleSchema);
+const Bid = mongoose.model("bid", BidSchema);
 module.exports = Bid;

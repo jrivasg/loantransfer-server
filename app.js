@@ -41,6 +41,7 @@ require("./helpers/init_redis");
 const AuthRoute = require("./Routes/Auth.route");
 const UserRoute = require("./Routes/User.route");
 const ChatRoute = require("./Routes/Chat.route");
+const BidRoute = require("./Routes/Bid.route");
 
 app.use(morgan("dev"));
 app.use(express.json());
@@ -59,6 +60,7 @@ app.get(
 app.use("/auth", AuthRoute);
 app.use("/user", UserRoute);
 app.use("/chat", ChatRoute);
+app.use("/bid", BidRoute);
 
 app.use(async (req, res, next) => {
   next(createError.NotFound());

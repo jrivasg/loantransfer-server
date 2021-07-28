@@ -1,9 +1,9 @@
 const express = require("express");
 const router = express.Router();
 const BidController = require("../Controllers/Bid.controller");
-const AuthController = require("../Controllers/Auth.Controller")
+const autJWT = require("../helpers/jwt_helper");
 
-router.post("/create", BidController.create);
-router.get("/getall", AuthController.getAll);
+/* router.post("/create", autJWT.verifyAccessToken, BidController.create); */
+router.get("/getall", autJWT.verifyAccessToken, BidController.getAll);
 
 module.exports = router;

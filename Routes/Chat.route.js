@@ -4,6 +4,6 @@ const autJWT = require("../helpers/jwt_helper");
 const ChatController = require("../Controllers/Chat.controller");
 
 router.post("/create", autJWT.verifyAccessToken, ChatController.createChat);
-router.get("/getall", autJWT.verifyAccessToken, ChatController.getAll);
+router.get("/getall", autJWT.verifyAccessToken, ChatController.getChats);
 
 module.exports = router;
