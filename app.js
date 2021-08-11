@@ -8,7 +8,7 @@ const io = require("socket.io")(http, {
 });
 require("./helpers/socket_io")(io);
 
-const morgan = require("morgan");
+const logger = require("morgan");
 const createError = require("http-errors");
 require("dotenv").config();
 const cors = require("cors");
@@ -17,6 +17,15 @@ const cors = require("cors");
 require("./helpers/init_mongodb");
 const { verifyAccessToken } = require("./helpers/jwt_helper");
 require("./helpers/init_redis");
+
+const {
+  AuthRoute,
+  UserRoute,
+  ChatRoute,
+  BidRoute,
+  OTProute,
+  UploadRoute,
+} = require("./Routes/index");
 //require("./helpers/generate_keys"); // Solo una vez para generar las claves para crear los tokens
 
  /* app.use((req, res, next) => {
@@ -38,12 +47,7 @@ require("./helpers/init_redis");
   next();
 });  */
 
-const AuthRoute = require("./Routes/Auth.route");
-const UserRoute = require("./Routes/User.route");
-const ChatRoute = require("./Routes/Chat.route");
-const BidRoute = require("./Routes/Bid.route");
-
-app.use(morgan("dev"));
+app.use(logger("common"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors());
@@ -52,8 +56,8 @@ app.use(cors());
 app.get(
   "/",
   /* verifyAccessToken, */ async (req, res, next) => {
-    res.sendFile(__dirname + "/index.html");
-    //res.send("Servidor de subastas corriendo");
+    //res.sendFile(__dirname + "/index.html");
+    res.send("Servidor de subastas corriendo");
   }
 );
 
@@ -61,6 +65,7 @@ app.use("/auth", AuthRoute);
 app.use("/user", UserRoute);
 app.use("/chat", ChatRoute);
 app.use("/bid", BidRoute);
+app.use("/otp", OTProute);
 
 app.use(async (req, res, next) => {
   next(createError.NotFound());
