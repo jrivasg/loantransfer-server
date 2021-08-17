@@ -1,5 +1,5 @@
 const OTP = require("../Models/OTP.model");
-const { encode } = require("../helpers/crypt");
+const { encode, decode } = require("../helpers/crypt");
 var otpGenerator = require("otp-generator");
 const nodemailer = require("nodemailer");
 const client = require("../helpers/init_redis");
@@ -7,7 +7,7 @@ const client = require("../helpers/init_redis");
 module.exports = {
   sendEmail: async (req, res, next) => {
     try {
-      const { email, type } = req.body;
+      const { email, type, userId } = req.body;
       let email_subject, email_message;
       if (!email) return res.status(400).send({ error: "Email no recibido" });
 
@@ -20,14 +20,14 @@ module.exports = {
         specialChars: false,
       });
       const now = new Date();
-      const expiration_time = AddMinutesToDate(now, 10);
+      const expiration_time = Date.now() + (1000 * 60 * 10);
 
       //Create OTP instance in DB
       const otpEl = {
         otp: otp,
         expiration_time: expiration_time,
       };
-      client.SET('userId', JSON.stringify(otpEl), "EX", 10 * 60, (err, reply) => {
+      client.SET(userId, JSON.stringify(otpEl), "EX", 10 * 60, (err, reply) => {
         if (err) {
           console.log(err.message);
           reject(createError.InternalServerError());
@@ -95,7 +95,7 @@ module.exports = {
       };
 
       const verification = await transporter.verify();
-      console.log(verification)
+      console.log(verification);
 
       //Send Email
       await transporter.sendMail(mailOptions, (err, response) => {
@@ -112,7 +112,8 @@ module.exports = {
   verify: async (req, res, next) => {
     try {
       var currentdate = new Date();
-      const { verification_key, otp, check } = req.body;
+      const { verification_key, otp, check, userId } = req.body;
+      //console.log(req.body);
 
       if (!verification_key) {
         const response = {
@@ -136,7 +137,10 @@ module.exports = {
       try {
         decoded = await decode(verification_key);
       } catch (err) {
-        const response = { Status: "Failure", Details: "Bad Request" };
+        const response = {
+          Status: "Failure",
+          Details: "Bad Request - decoding key",
+        };
         return res.status(400).send(response);
       }
 
@@ -153,103 +157,58 @@ module.exports = {
       }
 
       // TODO llamar a REDIS
-      const otp_instance = await OTP.findOne({ where: { id: obj.otp_id } });
+      client.GET(userId, (err, result) => {
+        if (err) {
+          console.log(err.message);
+          reject(createError.InternalServerError());
+          return;
+        }
+        const otp_instance = JSON.parse(result);
+        console.log(otp_instance);
+        //Check if OTP is available in the DB
+        if (otp_instance != null) {
+          //Check if OTP is already used or not
+          if (otp_instance.verified != true) {
+            //Check if OTP is expired or not
+            if (otp_instance.expiration_time > Date.now()) {
+              //Check if OTP is equal to the OTP in the DB
+              if (otp === otp_instance.otp) {
+                // Mark OTP as verified or used
+                otp_instance.verified = true;
+                //otp_instance.save();
 
-      //Check if OTP is available in the DB
-      if (otp_instance != null) {
-        //Check if OTP is already used or not
-        if (otp_instance.verified != true) {
-          //Check if OTP is expired or not
-          if (dates.compare(otp_instance.expiration_time, currentdate) == 1) {
-            //Check if OTP is equal to the OTP in the DB
-            if (otp === otp_instance.otp) {
-              // Mark OTP as verified or used
-              otp_instance.verified = true;
-              otp_instance.save();
-
-              const response = {
-                Status: "Success",
-                Details: "OTP Matched",
-                Check: check,
-              };
-              return res.status(200).send(response);
+                const response = {
+                  Status: "Success",
+                  Details: "Código de verificación correcto",
+                  Check: check,
+                };
+                return res.status(200).send(response);
+              } else {
+                const response = {
+                  Status: "Failure",
+                  Details: "El código no es correcto",
+                };
+                return res.status(400).send(response);
+              }
             } else {
-              const response = {
-                Status: "Failure",
-                Details: "OTP NOT Matched",
-              };
+              const response = { Status: "Failure", Details: "OTP Expired" };
               return res.status(400).send(response);
             }
           } else {
-            const response = { Status: "Failure", Details: "OTP Expired" };
+            const response = { Status: "Failure", Details: "OTP Already Used" };
             return res.status(400).send(response);
           }
         } else {
-          const response = { Status: "Failure", Details: "OTP Already Used" };
+          const response = {
+            Status: "Failure",
+            Details: "Código caducado, solicite uno nuevo",
+          };
           return res.status(400).send(response);
         }
-      } else {
-        const response = { Status: "Failure", Details: "Bad Request" };
-        return res.status(400).send(response);
-      }
+      });
     } catch (err) {
       const response = { Status: "Failure", Details: err.message };
       return res.status(400).send(response);
     }
-  },
-};
-
-// To add minutes to the current time
-const AddMinutesToDate = (date, minutes) => {
-  return new Date(date.getTime() + minutes * 60000);
-};
-
-// Function to Compares dates (expiration time and current time in our case)
-var dates = {
-  convert: function (d) {
-    // Converts the date in d to a date-object. The input can be:
-    //   a date object: returned without modification
-    //  an array      : Interpreted as [year,month,day]. NOTE: month is 0-11.
-    //   a number     : Interpreted as number of milliseconds
-    //                  since 1 Jan 1970 (a timestamp)
-    //   a string     : Any format supported by the javascript engine, like
-    //                  "YYYY/MM/DD", "MM/DD/YYYY", "Jan 31 2009" etc.
-    //  an object     : Interpreted as an object with year, month and date
-    //                  attributes.  **NOTE** month is 0-11.
-    return d.constructor === Date
-      ? d
-      : d.constructor === Array
-      ? new Date(d[0], d[1], d[2])
-      : d.constructor === Number
-      ? new Date(d)
-      : d.constructor === String
-      ? new Date(d)
-      : typeof d === "object"
-      ? new Date(d.year, d.month, d.date)
-      : NaN;
-  },
-  compare: function (a, b) {
-    // Compare two dates (could be of any type supported by the convert
-    // function above) and returns:
-    //  -1 : if a < b
-    //   0 : if a = b
-    //   1 : if a > b
-    // NaN : if a or b is an illegal date
-    return isFinite((a = this.convert(a).valueOf())) &&
-      isFinite((b = this.convert(b).valueOf()))
-      ? (a > b) - (a < b)
-      : NaN;
-  },
-  inRange: function (d, start, end) {
-    // Checks if date in d is between dates in start and end.
-    // Returns a boolean or NaN:
-    //    true  : if d is between start and end (inclusive)
-    //    false : if d is before start or after end
-    //    NaN   : if one or more of the dates is illegal.
-    return isFinite((d = this.convert(d).valueOf())) &&
-      isFinite((start = this.convert(start).valueOf())) &&
-      isFinite((end = this.convert(end).valueOf()))
-      ? start <= d && d <= end
-      : NaN;
   },
 };
