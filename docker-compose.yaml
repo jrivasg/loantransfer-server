@@ -12,7 +12,7 @@ services:
       - "PORT=3000"
     volumes:
       - ./:/development/servidorSubastas
-      - ./uploads:/home/aplicaciones/uploads/servidorSubastas
+      - ./uploads:/home/aplicaciones/uploads
     working_dir: /development/servidorSubastas
     command: sh -c "npm install && npm start"
     links:
