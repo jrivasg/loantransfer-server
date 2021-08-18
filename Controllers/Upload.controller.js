@@ -1,4 +1,4 @@
-const Project = require("../models/Project.model");
+//const Project = require("../models/Project.model");
 const fileSystem = require('fs');
 const path = require('path');
 
@@ -7,20 +7,20 @@ module.exports = {
         const { user_id, project_id } = req.body;
         req.files.forEach(file => {
             file.uploadBy = user_id;
-            Project.findByIdAndUpdate(project_id, { $push: { docs: file } },
+            /* Project.findByIdAndUpdate(project_id, { $push: { docs: file } },
                 (err, doc) => {
                     if (err) res.status(500).json(err);
-                })
+                }) */
         });
         res.status(200).json('Archivo/s guardado/s');
     },
     getAllBidFiles: async (req, res) => {
-        const { project_id } = req.body;
-        const project = await Project.findById(project_id).lean().catch(err => { return res.status(500).json(err) });
-
-        project && res.status(200).json(project.docs);
+        //const { project_id } = req.body;
+        //const project = await Project.findById(project_id).lean().catch(err => { return res.status(500).json(err) });
+console.log(req.body)
+         res.status(200).json([]);
     },
-    getFile: async (req, res) => {
+/*     getFile: async (req, res) => {
         const { doc_id, project_id } = req.query;
         const project = await Project.findById(project_id).lean();
         const doc = project.docs.find(doc => String(doc._id) === String(doc_id));
@@ -52,5 +52,5 @@ module.exports = {
                     res.status(200).json(project.docs);
                 })
         });
-    },
+    }, */
 };
