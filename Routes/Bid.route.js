@@ -5,5 +5,6 @@ const autJWT = require("../helpers/jwt_helper");
 
 /* router.post("/create", autJWT.verifyAccessToken, BidController.create); */
 router.get("/getall", autJWT.verifyAccessToken, BidController.getAll);
+router.post("/getsubbid", /* autJWT.verifyAccessToken, */ BidController.getOne);
 
 module.exports = router;

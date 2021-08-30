@@ -11,6 +11,19 @@ module.exports = {
       next(error);
     }
   },
+  getOne: async (req, res, next) => {
+    const { bid_id, subbid_id } = req.body;
+    try {
+      const bid = await Bid.findById(bid_id).lean();
+      const subbid = bid.bid.find((sub) => String(sub._id) === String(subbid_id));
+      subbid.initialPrice = bid.info[2].value;
+           console.log(subbid);
+ 
+      res.status(200).json(subbid);
+    } catch (error) {
+      next(error);
+    }
+  },
   /* createChat: async (req, res, next) => {
     try {
       // TODO Comprobar si el usuario ya tiene un chat con el otro usuario seleccionado

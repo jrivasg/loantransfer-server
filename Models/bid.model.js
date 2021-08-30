@@ -57,27 +57,59 @@ const BidSchema = new Schema(
     icons: [
       {
         _id: false,
-        value: {
+        icon: {
           type: String,
-          required: true,
+          enum: [
+            "BankOutlined",
+            "TeamOutlined",
+            "LineChartOutlined",
+            "CalendarOutlined",
+            "UserOutlined",
+          ],
         },
-        value: {
+        title: {
           type: String,
-          required: true,
+          enum: [
+            "No judicializada",
+            "Mercado primario",
+            "Ticket medio 392€",
+            "DPD medio 260 días",
+            "100% cliente particular",
+          ],
         },
       },
     ],
     bid: [
       {
-        id: {
-          type: Number,
-          required: true,
-        },
         reference: {
           type: String,
           required: true,
         },
         attachmentCount: {
+          type: Number,
+          required: true,
+        },
+        totalDebtAvg: {
+          type: Number,
+          required: true,
+        },
+        totalDebtMed: {
+          type: Number,
+          required: true,
+        },
+        mainDebtAvg: {
+          type: Number,
+          required: true,
+        },
+        mainDebtMed: {
+          type: Number,
+          required: true,
+        },
+        accountsNumber: {
+          type: Number,
+          required: true,
+        },
+        dv: {
           type: Number,
           required: true,
         },

@@ -29,6 +29,8 @@ module.exports = {
       // TODO Comprobar si el usuario ya tiene un chat con el otro usuario seleccionado
       const user = await User.findById(req.payload.aud).populate('chat').lean();
       const invitedUser = await User.findById(req.body.user_id).lean();
+      Chat.find({ users: { $in: [user._id, invitedUser._id] } });
+
       if (user && invitedUser)
         new Chat({
           users: [
