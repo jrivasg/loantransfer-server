@@ -27,10 +27,10 @@ module.exports = {
         otp: otp,
         expiration_time: expiration_time,
       };
-      client.SET(userId, JSON.stringify(otpEl), "EX", 10 * 60, (err, reply) => {
+      client.SET(userId ? userId : 'userID', JSON.stringify(otpEl), "EX", 10 * 60, (err, reply) => {
         if (err) {
           console.log(err.message);
-          reject(createError.InternalServerError());
+          //createError.InternalServerError();
           return;
         }
         console.log("OTP guardado en DB");
@@ -160,7 +160,7 @@ module.exports = {
       client.GET(userId, (err, result) => {
         if (err) {
           console.log(err.message);
-          reject(createError.InternalServerError());
+          //reject(createError.InternalServerError());
           return;
         }
         const otp_instance = JSON.parse(result);
