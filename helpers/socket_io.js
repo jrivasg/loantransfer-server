@@ -12,7 +12,7 @@ module.exports = function (io) {
 
     // Join a conversation
     const { roomId, token } = socket.handshake.query;
-    console.log(socket.handshake.query);
+    //console.log(socket.handshake.query);
     const payload = await verifyAccessToken(token);
 
     socket.join(roomId);
