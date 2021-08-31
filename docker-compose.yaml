@@ -36,8 +36,9 @@ services:
     command: mongod --logpath=/dev/null --auth # --quiet
   redisSubastas:
     container_name: "redisSubastas"
-    image: "redis:6.2-alpine"
+    image: "redis:6.2.5"
     volumes:
       - ./redis-data:/home/aplicaciones/databases/redisData/redisSubastas
+      - ./redis.conf:/home/aplicaciones/conf/redis.conf
     ports:
       - "6379:6379"

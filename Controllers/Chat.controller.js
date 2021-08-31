@@ -18,7 +18,7 @@ module.exports = {
   getChats: async (req, res, next) => {
     try {
       //console.log(req.payload);
-      const user = await User.findById(req.payload.aud).populate('chat').lean();
+      const user = await User.findById(req.payload.aud).populate("chat").lean();
       res.status(200).json(user.chat);
     } catch (error) {
       next(error);
@@ -26,10 +26,15 @@ module.exports = {
   },
   createChat: async (req, res, next) => {
     try {
-      // TODO Comprobar si el usuario ya tiene un chat con el otro usuario seleccionado
-      const user = await User.findById(req.payload.aud).populate('chat').lean();
+      const user = await User.findById(req.payload.aud).populate("chat").lean();
       const invitedUser = await User.findById(req.body.user_id).lean();
-      Chat.find({ users: { $in: [user._id, invitedUser._id] } });
+
+      // si el usuario ya tiene un chat con el otro usuario seleccionado se devuelve el chat, si no se crea
+      const chat = await Chat.find({
+        users: { $all: [user._id, invitedUser._id] },
+      });
+
+      if (chat) return res.status(200).json(chat);
 
       if (user && invitedUser)
         new Chat({
@@ -65,7 +70,7 @@ module.exports = {
                 }
               );
             }
-          );          
+          );
         });
     } catch (error) {
       next(error);
