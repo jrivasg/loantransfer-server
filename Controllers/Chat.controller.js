@@ -33,8 +33,11 @@ module.exports = {
       const chat = await Chat.find({
         users: { $all: [user._id, invitedUser._id] },
       });
+      console.log("user", user);
+      console.log("invitedUser", invitedUser);
+      console.log("chat", chat);
 
-      if (chat) return res.status(200).json(chat);
+      if (chat._id) return res.status(200).json(chat._id);
 
       if (user && invitedUser)
         new Chat({
@@ -66,7 +69,7 @@ module.exports = {
                   if (err) return res.json(500).json(err);
                   // Añadimos el chat al usuario previamente encontrado y se devuelve el array
                   user.chat.push(chat);
-                  res.status(200).json(user.chat);
+                  res.status(200).json(chat._id);
                 }
               );
             }
