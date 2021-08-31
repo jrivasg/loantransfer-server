@@ -29,16 +29,22 @@ module.exports = {
       const user = await User.findById(req.payload.aud).populate("chat").lean();
       const invitedUser = await User.findById(req.body.user_id).lean();
 
-      // si el usuario ya tiene un chat con el otro usuario seleccionado se devuelve el chat, si no se crea
-      const chat = await Chat.find({
-        users: { $all: [user._id, invitedUser._id] },
+      // si el usuario ya tiene un chat con el otro usuario seleccionado se devuelve el id del chat
+      const chats = await Chat.find({
+        users: { $elemMatch: { user_id: user._id } },
       });
-      console.log("user", user);
-      console.log("invitedUser", invitedUser);
-      console.log("chat", chat);
 
-      if (chat._id) return res.status(200).json(chat._id);
+      let tempChat;
+      chats.forEach((chat) => {
+        if (
+          chat.users.some((e) => String(e.user_id) === String(invitedUser._id))
+        )
+          tempChat = chat;
+      });
 
+      if (tempChat) return res.status(200).json(tempChat._id);
+
+      // Se crea el chat si no existe alguno entre ambos usuarios
       if (user && invitedUser)
         new Chat({
           users: [
