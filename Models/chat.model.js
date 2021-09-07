@@ -30,7 +30,38 @@ const ChatSchema = new Schema(
           type: String,
           enum: ["text", "file"],
         },
+        doc_id: {
+          type: Schema.Types.ObjectId,
+        },
         unread: { type: Boolean, default: true },
+      },
+    ],
+    documentation: [
+      {
+        fieldname: {
+          type: String,
+        },
+        originalname: {
+          type: String,
+        },
+        encoding: {
+          type: String,
+        },
+        mimetype: {
+          type: String,
+        },
+        destination: {
+          type: String,
+        },
+        filename: {
+          type: String,
+        },
+        path: {
+          type: String,
+        },
+        size: {
+          type: String,
+        },
       },
     ],
   },

@@ -177,13 +177,7 @@ const BidSchema = new Schema(
     starting_time: { type: Date, required: true },
     end_time: { type: Date, required: true },
     active: { type: Boolean },
-    documentation: [
-      {
-        _id: false,
-        url: String,
-        text: String,
-      },
-    ],
+    documentation: [],
     seller: { type: Schema.Types.ObjectId, ref: "User" },
     final_buyer: { type: Schema.Types.ObjectId, ref: "User" },
   },

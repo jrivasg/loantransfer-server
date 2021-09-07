@@ -1,17 +1,40 @@
 const Bid = require("../Models/bid.model");
+const Chat = require("../Models/chat.model");
 const fileSystem = require("fs");
 const path = require("path");
 
 module.exports = {
   savefiles: async (req, res) => {
-    const { bid_id } = req.body;
-    req.files.forEach((file) => {
-      file.uploadBy = req.payload.aud;
-      Bid.findByIdAndUpdate(bid_id, { $push: { documentation: file } }, (err, doc) => {
-        if (err) res.status(500).json(err);
+    const { bid_id, chat_id } = req.body;
+    if (bid_id)
+      req.files.forEach((file) => {
+        console.log("file", file);
+        Bid.findByIdAndUpdate(
+          bid_id,
+          { $push: { documentation: file } },
+          (err, bid) => {
+            if (err) res.status(500).json(err);
+            res.status(200).json({ message: "Archivo/s guardado/s", bid });
+          }
+        );
       });
-    });
-    res.status(200).json("Archivo/s guardado/s");
+
+    if (chat_id)
+      req.files.forEach((file) => {
+        Chat.findByIdAndUpdate(
+          chat_id,
+          { $push: { documentation: file } },
+          (err, chat) => {
+            if (err) res.status(500).json(err);
+            const doc = chat.documentation[chat.documentation.length - 1];
+            res.status(200).json({
+              message: "Archivo/s guardado/s",
+              doc_id: doc._id,
+              mymetype: doc.mimetype,
+            });
+          }
+        );
+      });
   },
   getAllBidFiles: async (req, res) => {
     const { bid_id } = req.body;
@@ -24,9 +47,29 @@ module.exports = {
     bid && res.status(200).json(bid.documentation);
   },
   getFile: async (req, res) => {
-    const { doc_id, bid_id } = req.query;
-    const bid = await Project.findById(bid_id).lean();
-    const doc = bid.documentation.find((doc) => String(doc._id) === String(doc_id));
+    const { doc_id, bid_id, chat_id } = req.query;
+    console.log(req.query);
+    let doc;
+    if (bid_id) {
+      const bid = await Bid.findById(bid_id)
+        .lean()
+        .catch((err) => {
+          return res.status(500).json(err);
+        });
+      doc = bid.documentation.find((doc) => String(doc._id) === String(doc_id));
+    }
+    if (chat_id) {
+      const chat = await Chat.findById(chat_id)
+        .lean()
+        .catch((err) => {
+          console.log(err);
+          return res.status(500).json(err);
+        });
+      doc = chat.documentation.find(
+        (doc) => String(doc._id) === String(doc_id)
+      );
+    }
+
     var filePath = path.join(doc.path);
     var stat = fileSystem.statSync(filePath);
 
@@ -40,22 +83,22 @@ module.exports = {
     readStream.pipe(res);
   },
   deleteFile: async (req, res) => {
-        const { bid_id, doc_id, doc_path } = req.query;
+    const { bid_id, doc_id, doc_path } = req.query;
 
-        fileSystem.unlink(doc_path, async (err) => {
-            if (err) {
-                console.error(err)
-                return res.status(500).json(err);
-            }
-            Bid.findByIdAndUpdate(
-              bid_id,
-              { $pull: { documentation: { _id: doc_id } } },
-              { new: true },
-              (err, bid) => {
-                if (err) return res.status(500).json(err);
-                res.status(200).json(bid.documentation);
-              }
-            );
-        });
-    },
+    fileSystem.unlink(doc_path, async (err) => {
+      if (err) {
+        console.error(err);
+        return res.status(500).json(err);
+      }
+      Bid.findByIdAndUpdate(
+        bid_id,
+        { $pull: { documentation: { _id: doc_id } } },
+        { new: true },
+        (err, bid) => {
+          if (err) return res.status(500).json(err);
+          res.status(200).json(bid.documentation);
+        }
+      );
+    });
+  },
 };

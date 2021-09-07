@@ -21,18 +21,20 @@ module.exports = function (io) {
     // Listen for new messages
     socket.on(NEW_CHAT_MESSAGE_EVENT, (data) => {
       // Se guarda cada mensaje que se transmite a traves del socket en el objeto de la conversacion
-      /* console.log("mensaje entrante", data);
-      console.log("roomId", roomId); */
+      console.log("mensaje entrante", data);
+    
       try {
         Chat.findByIdAndUpdate(
           roomId,
           {
             $push: {
               messages: {
-                text: data.body,
+                text: data.body.text,
                 from: payload.aud,
                 time: Date.now(),
-                msgType: "string",
+                msgType: data.body.type,
+                doc_id: data.body.doc_id || null,
+                mimetype: data.body.mimetype || null
               },
             },
           },

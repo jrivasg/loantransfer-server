@@ -22,10 +22,9 @@ var storage = multer.diskStorage({
 var upload = multer({ storage: storage });
 
 router.post("/savedocuments", upload.array("docs"), uploadController.savefiles);
-router.get("/document", autJWT.verifyAccessToken, uploadController.getFile);
+router.get("/document", uploadController.getFile);
 router.post(
   "/getAll",
-  autJWT.verifyAccessToken,
   uploadController.getAllBidFiles
 );
 //router.delete("/deldocument", /* autJWT.verifyToken, */ uploadController.deleteFile);
