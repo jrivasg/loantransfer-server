@@ -5,7 +5,6 @@ const BidSchema = new Schema(
   {
     Id: {
       type: Number,
-      required: true,
     },
     title: {
       type: String,
@@ -16,41 +15,36 @@ const BidSchema = new Schema(
         _id: false,
         title: {
           type: String,
-          required: true,
         },
         value: {
           type: String,
-          required: true,
-        },
-        subtitle: {
-          type: String,
-          required: true,
         },
       },
       {
         _id: false,
         title: {
           type: String,
-          required: true,
         },
         value: {
           type: String,
-          required: true,
-        },
-        subtitle: {
-          type: String,
-          required: true,
         },
       },
       {
         _id: false,
         title: {
           type: String,
-          required: true,
         },
         value: {
           type: String,
-          required: true,
+        },
+      },
+      {
+        _id: false,
+        title: {
+          type: String,
+        },
+        value: {
+          type: String,
         },
       },
     ],
@@ -79,12 +73,13 @@ const BidSchema = new Schema(
         },
       },
     ],
-    bid: [
+    bids: [
       {
         reference: {
           type: String,
           required: true,
         },
+        icons: [],
         attachmentCount: {
           type: Number,
           required: true,
@@ -109,50 +104,45 @@ const BidSchema = new Schema(
           type: Number,
           required: true,
         },
+        minimunAmount: {
+          type: Number,
+          required: true,
+        },
         dv: {
           type: Number,
           required: true,
         },
-        principalMount: {
+        mainDebt: {
           type: String,
           required: true,
         },
         progressionPrincipal: {
           type: Number,
-          required: true,
         },
         progressionTotal: {
           type: Number,
-          required: true,
         },
-        time: {
-          type: String,
-          required: true,
-        },
+        starting_time: { type: Date },
+        end_time: { type: Date },
         data: [
           {
             _id: false,
             name: {
               type: String,
-              required: true,
             },
             data: [
               {
                 type: Number,
-                required: true,
               },
             ],
             value: {
               type: Number,
-              required: true,
             },
             status: {
               type: Number,
-              required: true,
             },
             subtitle: {
               type: String,
-              required: true,
             },
             historial: [
               {
@@ -162,11 +152,9 @@ const BidSchema = new Schema(
                 },
                 amount: {
                   type: Number,
-                  required: true,
                 },
                 time: {
                   type: Number,
-                  required: true,
                 },
               },
             ],
@@ -174,9 +162,9 @@ const BidSchema = new Schema(
         ],
       },
     ],
-    starting_time: { type: Date, required: true },
-    end_time: { type: Date, required: true },
-    active: { type: Boolean },
+    starting_time: { type: Date },
+    end_time: { type: Date },
+    active: { type: Boolean, default: false },
     documentation: [],
     seller: { type: Schema.Types.ObjectId, ref: "User" },
     final_buyer: { type: Schema.Types.ObjectId, ref: "User" },

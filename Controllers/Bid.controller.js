@@ -11,23 +11,83 @@ module.exports = {
       next(error);
     }
   },
+  getMybids: async (req, res, next) => {
+    try {
+      const { user_id } = req.body;
+      //console.log(req.payload);
+      const bid = await Bid.find({ final_buyer: user_id }).lean();
+      res.status(200).json(bid);
+    } catch (error) {
+      next(error);
+    }
+  },
+  getActiveBids: async (req, res, next) => {
+    try {
+      //console.log(req.payload);
+      const bid = await Bid.find({
+        starting_time: {
+          $gte: ISODate("2010-04-29T00:00:00.000Z"),
+          $lt: ISODate("2010-05-01T00:00:00.000Z"),
+        },
+      }).lean();
+      res.status(200).json(bid);
+    } catch (error) {
+      next(error);
+    }
+  },
   getOne: async (req, res, next) => {
     const { bid_id, subbid_id } = req.body;
     try {
       const bid = await Bid.findById(bid_id).lean();
-      const subbid = bid.bid.find((sub) => String(sub._id) === String(subbid_id));
+      const subbid = bid.bid.find(
+        (sub) => String(sub._id) === String(subbid_id)
+      );
       subbid.initialPrice = bid.info[2].value;
-           console.log(subbid);
- 
+      console.log(subbid);
+
       res.status(200).json(subbid);
     } catch (error) {
       next(error);
     }
   },
-  /* createChat: async (req, res, next) => {
+  createBid: async (req, res, next) => {
+    const { title, initPrice, totalDebt, principalMount, icons, bids } =
+      req.body;
+    console.log(req.body);
+
+    new Bid({
+      title,
+      info: [
+        {
+          title: "Precio inicial",
+          value: initPrice,
+        },
+        {
+          title: "Pujas",
+          value: null,
+        },
+        {
+          title: "Deuda total",
+          value: totalDebt,
+        },
+        {
+          title: "Deuda principal",
+          value: principalMount,
+        },
+      ],
+      icons,
+      bids,
+    }).save((err, bid) => {
+      if (err) {
+        console.log(err);
+        return res.status(500).json(err);
+      }
+      res.status(200).json("Subasta creada");
+    });
+
     try {
       // TODO Comprobar si el usuario ya tiene un chat con el otro usuario seleccionado
-      const user = await User.findById(req.payload.aud).populate('chat').lean();
+      /* const user = await User.findById(req.payload.aud).populate('chat').lean();
       const invitedUser = await User.findById(req.body.user_id).lean();
       if (user && invitedUser)
         new Chat({
@@ -64,11 +124,11 @@ module.exports = {
               );
             }
           );          
-        });
+        }); */
     } catch (error) {
       next(error);
     }
-  }, */
+  },
   /* saveMessage: async (req, res, next) => {
     const { user_id, chat, message } = req.body;
     try {
