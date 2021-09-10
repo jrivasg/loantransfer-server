@@ -22,20 +22,20 @@ module.exports = function (io) {
     socket.on(NEW_CHAT_MESSAGE_EVENT, (data) => {
       // Se guarda cada mensaje que se transmite a traves del socket en el objeto de la conversacion
       console.log("mensaje entrante", data);
-    
+      const message = {
+        text: data.body.text,
+        from: payload.aud,
+        time: Date.now(),
+        msgType: data.body.type,
+        doc_id: data.body.doc_id || null,
+        mimetype: data.body.mimetype || null,
+      };
       try {
         Chat.findByIdAndUpdate(
           roomId,
           {
             $push: {
-              messages: {
-                text: data.body.text,
-                from: payload.aud,
-                time: Date.now(),
-                msgType: data.body.type,
-                doc_id: data.body.doc_id || null,
-                mimetype: data.body.mimetype || null
-              },
+              messages: message,
             },
           },
           { new: true },
@@ -48,12 +48,7 @@ module.exports = function (io) {
         console.log(error);
       }
       data.from = payload.aud;
-      io.in(roomId).emit(NEW_CHAT_MESSAGE_EVENT, {
-        text: data.body,
-        from: payload.aud,
-        time: Date.now(),
-        msgType: "string",
-      });
+      io.in(roomId).emit(NEW_CHAT_MESSAGE_EVENT, message);
     });
 
     // Leave the room if the user closes the socket
