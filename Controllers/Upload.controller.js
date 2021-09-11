@@ -12,6 +12,7 @@ module.exports = {
         Bid.findByIdAndUpdate(
           bid_id,
           { $push: { documentation: file } },
+          { new: true },
           (err, bid) => {
             if (err) res.status(500).json(err);
             res.status(200).json({ message: "Archivo/s guardado/s", bid });
@@ -24,6 +25,7 @@ module.exports = {
         Chat.findByIdAndUpdate(
           chat_id,
           { $push: { documentation: file } },
+          { new: true },
           (err, chat) => {
             if (err) res.status(500).json(err);
             const doc = chat.documentation[chat.documentation.length - 1];
@@ -31,6 +33,7 @@ module.exports = {
               message: "Archivo/s guardado/s",
               doc_id: doc._id,
               mymetype: doc.mimetype,
+              name: doc.originalname,
             });
           }
         );
