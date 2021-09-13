@@ -73,14 +73,43 @@ const BidSchema = new Schema(
         },
       },
     ],
+    seller: { type: Schema.Types.ObjectId, ref: "User" },
     bids: [
       {
         reference: {
           type: String,
           required: true,
         },
-        icons: [],
+        icons: [
+          {
+            _id: false,
+            icon: {
+              type: String,
+              enum: [
+                "BankOutlined",
+                "TeamOutlined",
+                "LineChartOutlined",
+                "CalendarOutlined",
+                "UserOutlined",
+              ],
+            },
+            title: {
+              type: String,
+              enum: [
+                "No judicializada",
+                "Mercado primario",
+                "Ticket medio 392€",
+                "DPD medio 260 días",
+                "100% cliente particular",
+              ],
+            },
+          },
+        ],
         attachmentCount: {
+          type: Number,
+          required: true,
+        },
+        totalDebt: {
           type: Number,
           required: true,
         },
@@ -166,7 +195,6 @@ const BidSchema = new Schema(
     end_time: { type: Date },
     active: { type: Boolean, default: false },
     documentation: [],
-    seller: { type: Schema.Types.ObjectId, ref: "User" },
     final_buyer: { type: Schema.Types.ObjectId, ref: "User" },
   },
   {

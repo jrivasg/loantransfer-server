@@ -42,7 +42,7 @@ module.exports = {
       const subbid = bid.bid.find(
         (sub) => String(sub._id) === String(subbid_id)
       );
-      subbid.initialPrice = bid.info[2].value;
+ 
       console.log(subbid);
 
       res.status(200).json(subbid);
