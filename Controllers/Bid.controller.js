@@ -39,7 +39,7 @@ module.exports = {
     const { bid_id, subbid_id } = req.body;
     try {
       const bid = await Bid.findById(bid_id).lean();
-      const subbid = bid.bid.find(
+      const subbid = bid.bids.find(
         (sub) => String(sub._id) === String(subbid_id)
       );
  
