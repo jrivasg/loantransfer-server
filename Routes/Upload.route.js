@@ -10,9 +10,9 @@ const DIR = "./uploads/";
 var storage = multer.diskStorage({
   destination: function (req, file, cb) {
     console.log(DIR + req.body.bid_id);
-    !fs.existsSync(DIR + req.body.bid_id) &&
-      fs.mkdirSync(DIR + req.body.bid_id);
-    cb(null, DIR + req.body.bid_id);
+    const directory = req.body.bid_id || req.body.chat_id;
+    !fs.existsSync(DIR + directory) && fs.mkdirSync(DIR + directory);
+    cb(null, DIR + directory);
   },
   filename: function (req, file, cb) {
     cb(null, file.originalname);
