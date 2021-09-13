@@ -43,7 +43,7 @@ module.exports = {
         (sub) => String(sub._id) === String(subbid_id)
       );
  
-      console.log(subbid);
+      //console.log(subbid);
 
       res.status(200).json(subbid);
     } catch (error) {
@@ -51,7 +51,7 @@ module.exports = {
     }
   },
   createBid: async (req, res, next) => {
-    const { title, initPrice, totalDebt, principalMount, icons, bids } =
+    const { title, initPrice, totalDebt, principalMount, icons, bids, seller } =
       req.body;
     console.log(req.body);
 
@@ -63,10 +63,6 @@ module.exports = {
           value: initPrice,
         },
         {
-          title: "Pujas",
-          value: null,
-        },
-        {
           title: "Deuda total",
           value: totalDebt,
         },
@@ -75,6 +71,7 @@ module.exports = {
           value: principalMount,
         },
       ],
+      seller, 
       icons,
       bids,
     }).save((err, bid) => {

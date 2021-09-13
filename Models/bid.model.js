@@ -38,15 +38,6 @@ const BidSchema = new Schema(
           type: String,
         },
       },
-      {
-        _id: false,
-        title: {
-          type: String,
-        },
-        value: {
-          type: String,
-        },
-      },
     ],
     icons: [
       {
@@ -189,6 +180,7 @@ const BidSchema = new Schema(
             ],
           },
         ],
+        documents: [],
       },
     ],
     starting_time: { type: Date },
