@@ -11,11 +11,17 @@ module.exports = {
         console.log("file", file);
         Bid.findByIdAndUpdate(
           bid_id,
-          { $push: { documentation: file } },
+          { $push: { documents: file } },
           { new: true },
           (err, bid) => {
             if (err) res.status(500).json(err);
-            res.status(200).json({ message: "Archivo/s guardado/s", bid });
+            const doc = bid.documents[bid.documents.length - 1];
+            res.status(200).json({
+              message: "Archivo/s guardado/s",
+              doc_id: doc._id,
+              mymetype: doc.mimetype,
+              name: doc.originalname,
+            })
           }
         );
       });
@@ -59,7 +65,7 @@ module.exports = {
         .catch((err) => {
           return res.status(500).json(err);
         });
-      doc = bid.documentation.find((doc) => String(doc._id) === String(doc_id));
+      doc = bid.documents.find((doc) => String(doc._id) === String(doc_id));
     }
     if (chat_id) {
       const chat = await Chat.findById(chat_id)

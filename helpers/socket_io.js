@@ -1,10 +1,12 @@
 const mongoose = require("mongoose");
 const Chat = require("../Models/chat.model");
-const User = require("../Models/User.model");
+const Bid = require("../Models/bid.model");
 const JWT = require("jsonwebtoken");
 const NEW_CHAT_MESSAGE_EVENT = "newChatMessage";
 const NEW_BID_EVENT = "newBidEvent";
+const CURRENT_AMOUNT = "currentAmount";
 let users = [];
+let winningAmount = 50;
 
 module.exports = function (io) {
   io.on("connection", async (socket) => {
@@ -12,16 +14,20 @@ module.exports = function (io) {
 
     // Join a conversation
     const { roomId, token } = socket.handshake.query;
-    //console.log(socket.handshake.query);
     const payload = await verifyAccessToken(token);
-
     socket.join(roomId);
-    //console.log(io.sockets.adapter.rooms.get(roomId));
 
-    // Listen for new messages
+    // Enviamos el valor actual de cada puja abierta de la puja
+    if (roomId === 'bidding') {
+
+      io.to(socket.id).emit(CURRENT_AMOUNT, { amount: winningAmount });
+    }
+
+
+    // Listen for new CHAT messages
     socket.on(NEW_CHAT_MESSAGE_EVENT, (data) => {
       // Se guarda cada mensaje que se transmite a traves del socket en el objeto de la conversacion
-      console.log("mensaje entrante", data);
+      //console.log("mensaje entrante", data);
       const message = {
         text: data.body.text,
         from: payload.aud,
@@ -51,6 +57,36 @@ module.exports = function (io) {
       io.in(roomId).emit(NEW_CHAT_MESSAGE_EVENT, message);
     });
 
+    // Listen for new CHAT messages
+    socket.on(NEW_BID_EVENT, async (data) => {
+      // Se guarda cada mensaje que se transmite a traves del socket en el objeto de la conversacion
+      const { bid_id, amount, subbid_id } = data.body;
+      console.log("puja", data);
+      let puja;
+      if (amount > winningAmount) {
+        winningAmount += amount;
+
+        puja = {
+          from: payload.aud,
+          time: Date.now(),
+          bid_id,
+          amount,
+          subbid_id,
+        };
+
+        try {
+          const tempbid = await Bid.findById(bid_id).lean();
+          const tempsubbid = tempbid.bids.find(subbid => String(subbid._id) === String(subbid_id));
+
+
+
+          io.in(roomId).emit(NEW_BID_EVENT, puja);
+        } catch (error) {
+          console.log(error);
+        }
+      }
+    });
+
     // Leave the room if the user closes the socket
     socket.on("disconnect", () => {
       socket.leave(roomId);
@@ -62,19 +98,6 @@ module.exports = function (io) {
       //console.log("users tras desconexion", users);
       socket.emit("user list", users);
       socket.broadcast.emit("user list", users);
-    });
-
-    // eventos para las pujas
-    socket.on("bid", (content) => {
-      const tempBid = {};
-
-      socket.emit("bid", content["amount"]);
-
-      io.in(roomId).emit(NEW_BID_EVENT, {
-        amount: data.body,
-        from: payload.aud,
-        time: Date.now(),
-      });
     });
   });
 };

@@ -8,7 +8,7 @@ const BidSchema = new Schema(
     },
     title: {
       type: String,
-      required: true,
+
     },
     info: [
       {
@@ -69,7 +69,7 @@ const BidSchema = new Schema(
       {
         reference: {
           type: String,
-          required: true,
+
         },
         icons: [
           {
@@ -98,43 +98,43 @@ const BidSchema = new Schema(
         ],
         attachmentCount: {
           type: Number,
-          required: true,
+
         },
         totalDebt: {
           type: Number,
-          required: true,
+
         },
         totalDebtAvg: {
           type: Number,
-          required: true,
+
         },
         totalDebtMed: {
           type: Number,
-          required: true,
+
         },
         mainDebtAvg: {
           type: Number,
-          required: true,
+
         },
         mainDebtMed: {
           type: Number,
-          required: true,
+
         },
         accountsNumber: {
           type: Number,
-          required: true,
+
         },
         minimunAmount: {
           type: Number,
-          required: true,
+
         },
         dv: {
           type: Number,
-          required: true,
+
         },
         mainDebt: {
           type: String,
-          required: true,
+
         },
         progressionPrincipal: {
           type: Number,
@@ -147,46 +147,53 @@ const BidSchema = new Schema(
         data: [
           {
             _id: false,
-            name: {
-              type: String,
+            from: {
+              type: Schema.Types.ObjectId,
+              ref: "user",
             },
-            data: [
-              {
-                type: Number,
-              },
-            ],
-            value: {
+            amount: {
               type: Number,
             },
-            status: {
+            time: {
               type: Number,
             },
-            subtitle: {
-              type: String,
-            },
-            historial: [
-              {
-                from: {
-                  type: Schema.Types.ObjectId,
-                  ref: "user",
-                },
-                amount: {
-                  type: Number,
-                },
-                time: {
-                  type: Number,
-                },
-              },
-            ],
           },
         ],
-        documents: [],
+        documentation: [],
       },
     ],
     starting_time: { type: Date },
     end_time: { type: Date },
     active: { type: Boolean, default: false },
     documentation: [],
+    documents: [
+      {
+        fieldname: {
+          type: String,
+        },
+        originalname: {
+          type: String,
+        },
+        encoding: {
+          type: String,
+        },
+        mimetype: {
+          type: String,
+        },
+        destination: {
+          type: String,
+        },
+        filename: {
+          type: String,
+        },
+        path: {
+          type: String,
+        },
+        size: {
+          type: String,
+        },
+      },
+    ],
     final_buyer: { type: Schema.Types.ObjectId, ref: "User" },
   },
   {

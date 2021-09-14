@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const uploadController = require("../Controllers/Upload.controller");
 const autJWT = require("../helpers/jwt_helper");
+const mongoose = require('mongoose')
 
 const fs = require("fs");
 const multer = require("multer");
@@ -9,8 +10,9 @@ const DIR = "./uploads/";
 
 var storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    console.log(DIR + req.body.bid_id);
-    const directory = req.body.bid_id || req.body.chat_id;
+    //console.log(DIR + req.body.bid_id);
+    const directory = (req.body.chat_id) ? req.body.chat_id : req.body.bid_id;
+    //const directory = req.body.chat_id || req.body.bid_id;
     !fs.existsSync(DIR + directory) && fs.mkdirSync(DIR + directory);
     cb(null, DIR + directory);
   },

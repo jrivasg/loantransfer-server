@@ -22,14 +22,11 @@ module.exports = {
     }
   },
   getActiveBids: async (req, res, next) => {
+    const today = new Date();
+    const endday = new Date();
     try {
       //console.log(req.payload);
-      const bid = await Bid.find({
-        starting_time: {
-          $gte: ISODate("2010-04-29T00:00:00.000Z"),
-          $lt: ISODate("2010-05-01T00:00:00.000Z"),
-        },
-      }).lean();
+      const bid = await Bid.find({ 'bids.active': true }).lean();
       res.status(200).json(bid);
     } catch (error) {
       next(error);
@@ -42,7 +39,7 @@ module.exports = {
       const subbid = bid.bids.find(
         (sub) => String(sub._id) === String(subbid_id)
       );
- 
+
       //console.log(subbid);
 
       res.status(200).json(subbid);
@@ -51,7 +48,7 @@ module.exports = {
     }
   },
   createBid: async (req, res, next) => {
-    const { title, initPrice, totalDebt, principalMount, icons, bids, seller } =
+    const { title, minimunAmount, totalDebt, principalMount, icons, bids, seller, documentation } =
       req.body;
     console.log(req.body);
 
@@ -60,7 +57,7 @@ module.exports = {
       info: [
         {
           title: "Precio inicial",
-          value: initPrice,
+          value: minimunAmount,
         },
         {
           title: "Deuda total",
@@ -71,9 +68,10 @@ module.exports = {
           value: principalMount,
         },
       ],
-      seller, 
+      seller,
       icons,
       bids,
+      documentation
     }).save((err, bid) => {
       if (err) {
         console.log(err);
