@@ -2,89 +2,38 @@ const mongoose = require("mongoose");
 const Chat = require("../Models/chat.model");
 const Bid = require("../Models/bid.model");
 const JWT = require("jsonwebtoken");
+const { promisify } = require("util");
+const client = require("../helpers/init_redis");
+const getAsyncRedis = promisify(client.get).bind(client);
+
 const NEW_CHAT_MESSAGE_EVENT = "newChatMessage";
 const NEW_BID_EVENT = "newBidEvent";
 const CURRENT_AMOUNT = "currentAmount";
+const STARTING_BID = "startingBid";
 let users = [];
-let winningAmount = 50;
+let winningBids = {};
 
-module.exports = function (io) {
+module.exports = (io) => {
   io.on("connection", async (socket) => {
     console.log("cliente conectado => ", socket.id);
-
     // Join a conversation
     const { roomId, token } = socket.handshake.query;
     const payload = await verifyAccessToken(token);
     socket.join(roomId);
 
-    // Enviamos el valor actual de cada puja abierta de la puja
-    if (roomId === 'bidding') {
-
-      io.to(socket.id).emit(CURRENT_AMOUNT, { amount: winningAmount });
-    }
-
+    // Si hay subastas para empezar en la siguiente hora ponemos un temporizador, si hay alguna activa ya, se envía un mensaje con el id activo
+    setTimer(io, socket.id);
 
     // Listen for new CHAT messages
     socket.on(NEW_CHAT_MESSAGE_EVENT, (data) => {
-      // Se guarda cada mensaje que se transmite a traves del socket en el objeto de la conversacion
-      //console.log("mensaje entrante", data);
-      const message = {
-        text: data.body.text,
-        from: payload.aud,
-        time: Date.now(),
-        msgType: data.body.type,
-        doc_id: data.body.doc_id || null,
-        mimetype: data.body.mimetype || null,
-      };
-      try {
-        Chat.findByIdAndUpdate(
-          roomId,
-          {
-            $push: {
-              messages: message,
-            },
-          },
-          { new: true },
-          (err, doc) => {
-            if (err) console.log("Error al guardar el mensaje");
-            //console.log(doc);
-          }
-        );
-      } catch (error) {
-        console.log(error);
-      }
-      data.from = payload.aud;
-      io.in(roomId).emit(NEW_CHAT_MESSAGE_EVENT, message);
+      // Se guarda cada mensaje que se transmite a traves del socket en el objeto de la conversacion y se emite al resto de la sala
+      saveChatMessage(data, io, roomId, payload);
     });
 
-    // Listen for new CHAT messages
-    socket.on(NEW_BID_EVENT, async (data) => {
-      // Se guarda cada mensaje que se transmite a traves del socket en el objeto de la conversacion
-      const { bid_id, amount, subbid_id } = data.body;
-      console.log("puja", data);
-      let puja;
-      if (amount > winningAmount) {
-        winningAmount += amount;
-
-        puja = {
-          from: payload.aud,
-          time: Date.now(),
-          bid_id,
-          amount,
-          subbid_id,
-        };
-
-        try {
-          const tempbid = await Bid.findById(bid_id).lean();
-          const tempsubbid = tempbid.bids.find(subbid => String(subbid._id) === String(subbid_id));
-
-
-
-          io.in(roomId).emit(NEW_BID_EVENT, puja);
-        } catch (error) {
-          console.log(error);
-        }
-      }
+    // Listen for new bids
+    socket.on(NEW_BID_EVENT, (data) => {
+      // Se comprueba si la puja es valida y si lo es se guarda en el log
+      saveSendLastBid(data, io, roomId, payload)
     });
 
     // Leave the room if the user closes the socket
@@ -115,3 +64,123 @@ const verifyAccessToken = (authtoken) => {
     });
   });
 };
+
+const saveChatMessage = (data, io, roomId, payload) => {
+  const message = {
+    text: data.body.text,
+    from: payload.aud,
+    time: Date.now(),
+    msgType: data.body.type,
+    doc_id: data.body.doc_id || null,
+    mimetype: data.body.mimetype || null,
+  };
+  try {
+    Chat.findByIdAndUpdate(
+      roomId,
+      {
+        $push: {
+          messages: message,
+        },
+      },
+      { new: true },
+      (err, doc) => {
+        if (err) console.log("Error al guardar el mensaje");
+        //console.log(doc);
+      }
+    );
+  } catch (error) {
+    console.log(error);
+  }
+  io.in(roomId).emit(NEW_CHAT_MESSAGE_EVENT, message);
+}
+
+const saveSendLastBid = async (data, io, roomId, payload) => {
+  const { bid_id, amount, subbid_id } = data.body;
+  try {
+    const bid = Bid.findById(bid_id).lean();
+    //console.log(bid)
+    /* const subbid = bid.bids.find(eachbid => String(eachbid.subbid_id) === String(subbid_id));
+    console.log(subbid) */
+    /*  Bid.findByIdAndUpdate(
+       roomId,
+       {
+         $push: {
+           messages: message,
+         },
+       },
+       { new: true },
+       (err, doc) => {
+         if (err) console.log("Error al guardar el mensaje");
+         //console.log(doc);
+       }
+     ); */
+  } catch (error) {
+    console.log(error);
+  }
+
+  let puja;
+
+  let lastBidRedis = JSON.parse(await getAsyncRedis('subbid_id1').catch((err) => {
+    if (err) console.error(err)
+  }));
+  console.log('lastbid', lastBidRedis?.amount)
+
+  let tempAmount = 0;
+  if (lastBidRedis) {
+    tempAmount = Number(lastBidRedis.amount) + 500
+  } else {
+    tempAmount = 500
+  }
+
+  puja = {
+    from: payload.aud,
+    time: new Date(),
+    bid_id,
+    amount: tempAmount,
+    subbid_id,
+    active: true
+  };
+
+  client.SET('subbid_id1', JSON.stringify(puja), "EX", 10 * 180, (err, reply) => {
+    if (err) {
+      console.log(err.message);
+      //createError.InternalServerError();
+    }
+    console.log("Puja Guardada");
+  });
+
+  io.in(roomId).emit(NEW_BID_EVENT, puja);
+  //}
+}
+
+const getActiveBids = async () => {
+  const now = new Date();
+  let startingMoment = new Date();
+  startingMoment.setDate(now.getHours() + 1);
+
+  try {
+    return await Bid.find({ starting_time: { $gte: now, $lte: startingMoment } }).lean();
+  } catch (err) {
+    console.err(err)
+  }
+}
+
+const setTimer = async (io, socket_id) => {
+  const activeBids = await getActiveBids();
+  const startBid = (eachBid) => {
+    return io.to(socket_id).emit(STARTING_BID, { bid_id: eachBid._id, active: true });
+  }
+  if (activeBids.length > 0) {
+    activeBids.forEach(eachBid => {
+      let now = Date.now() + 2 * 60 * 60 * 1000;
+      const interval = new Date(eachBid.starting_time).getTime() - now;
+      if (interval > 0) {
+        setInterval(() => {
+          startBid(eachBid, io);
+        }, interval);
+      } else {
+        startBid(eachBid);
+      }
+    });
+  }
+}

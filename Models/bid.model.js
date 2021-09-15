@@ -69,7 +69,6 @@ const BidSchema = new Schema(
       {
         reference: {
           type: String,
-
         },
         icons: [
           {
