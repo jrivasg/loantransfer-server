@@ -8,15 +8,13 @@ const getAsyncRedis = promisify(client.get).bind(client);
 
 const NEW_CHAT_MESSAGE_EVENT = "newChatMessage";
 const NEW_BID_EVENT = "newBidEvent";
-const CURRENT_AMOUNT = "currentAmount";
 const STARTING_BID = "startingBid";
 let users = [];
-let winningBids = {};
 
 module.exports = (io) => {
   io.on("connection", async (socket) => {
     console.log("cliente conectado => ", socket.id);
-    // Join a conversation
+    // Conexión y unión del cliente a la sala
     const { roomId, token } = socket.handshake.query;
     const payload = await verifyAccessToken(token);
     socket.join(roomId);
@@ -74,6 +72,7 @@ const saveChatMessage = (data, io, roomId, payload) => {
     doc_id: data.body.doc_id || null,
     mimetype: data.body.mimetype || null,
   };
+
   try {
     Chat.findByIdAndUpdate(
       roomId,
@@ -96,61 +95,52 @@ const saveChatMessage = (data, io, roomId, payload) => {
 
 const saveSendLastBid = async (data, io, roomId, payload) => {
   const { bid_id, amount, subbid_id } = data.body;
+
   try {
-    const bid = Bid.findById(bid_id).lean();
-    //console.log(bid)
-    /* const subbid = bid.bids.find(eachbid => String(eachbid.subbid_id) === String(subbid_id));
-    console.log(subbid) */
-    /*  Bid.findByIdAndUpdate(
-       roomId,
-       {
-         $push: {
-           messages: message,
-         },
-       },
-       { new: true },
-       (err, doc) => {
-         if (err) console.log("Error al guardar el mensaje");
-         //console.log(doc);
-       }
-     ); */
+    const bid = Bid.findById(bid_id, 'bids').lean();
+    console.log(bids)
   } catch (error) {
     console.log(error);
   }
 
-  let puja;
-
-  let lastBidRedis = JSON.parse(await getAsyncRedis('subbid_id1').catch((err) => {
-    if (err) console.error(err)
-  }));
-  console.log('lastbid', lastBidRedis?.amount)
-
-  let tempAmount = 0;
-  if (lastBidRedis) {
-    tempAmount = Number(lastBidRedis.amount) + 500
-  } else {
-    tempAmount = 500
-  }
-
-  puja = {
+  // Se crea el objeto puja
+  let puja = {
     from: payload.aud,
     time: new Date(),
     bid_id,
-    amount: tempAmount,
+    amount: null,
     subbid_id,
-    active: true
-  };
+  };;
 
-  client.SET('subbid_id1', JSON.stringify(puja), "EX", 10 * 180, (err, reply) => {
-    if (err) {
-      console.log(err.message);
-      //createError.InternalServerError();
+  try {
+    // Obtenemos el historico para esa venta
+    let bidLog = JSON.parse(await getAsyncRedis(subbid_id).catch((err) => {
+      if (err) console.error(err)
+    }));
+    console.log(`${subbid_id}-log`, bidLog);
+
+    // Se calcula la nueva cantidad sumando cantidades fijas según incrementos
+    if (bidLog) {
+      puja.amount = Number(bidLog[bidLog.length - 1].amount) + 500;
+    } else {
+      puja.amount = 500;
     }
-    console.log("Puja Guardada");
-  });
 
-  io.in(roomId).emit(NEW_BID_EVENT, puja);
-  //}
+    // Se añade la puja al log de la subasta
+    client.SET(subbid_id, JSON.stringify(puja), (err, reply) => {
+      if (err) {
+        console.log(err.message);
+        //createError.InternalServerError();
+      }
+      console.log("Puja Guardada");
+    });
+
+    // Se reenvía la última puja a todos los clientes del socket
+    puja.active = true;
+    io.in(roomId).emit(NEW_BID_EVENT, puja);
+  } catch (error) {
+    console.log(error);
+  }
 }
 
 const getActiveBids = async () => {
@@ -179,7 +169,27 @@ const setTimer = async (io, socket_id) => {
           startBid(eachBid, io);
         }, interval);
       } else {
-        startBid(eachBid);
+        startBid(eachBid, io);
+      }
+    });
+  }
+}
+
+const setTimer_prueba = async (io, socket_id) => {
+  const activeBids = await getActiveBids();
+  const sendBidInfo = (eachBid) => {
+    return io.to(socket_id).emit(STARTING_BID, { bid_id: eachBid._id, active: true });
+  }
+  if (activeBids.length > 0) {
+    activeBids.forEach(eachBid => {
+      let now = Date.now() + 2 * 60 * 60 * 1000;
+      const interval = new Date(eachBid.starting_time).getTime() - now;
+      if (interval > 0) {
+        setInterval(() => {
+          sendBidInfo(eachBid, io);
+        }, interval);
+      } else {
+        sendBidInfo(eachBid, io);
       }
     });
   }

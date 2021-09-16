@@ -1,7 +1,7 @@
 const mongoose = require('mongoose')
 //"mongodb://superAdmin:kR9LrRe22507BdMg@mongodbSubastas:27017/admin"
 mongoose
-  .connect(`mongodb://164.90.164.161:3500/`, {
+  .connect(process.env.MONGODB_URI, {
     user: process.env.MONGO_USER,
     pass: process.env.MONGO_PASS,
     dbName: process.env.DB_NAME,

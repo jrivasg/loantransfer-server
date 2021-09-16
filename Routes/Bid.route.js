@@ -8,5 +8,6 @@ router.get("/getall", autJWT.verifyAccessToken, BidController.getAll);
 router.get("/getactive", autJWT.verifyAccessToken, BidController.getActiveBids);
 router.post("/getsubbid", /* autJWT.verifyAccessToken, */ BidController.getOne);
 router.post("/create", /* autJWT.verifyAccessToken, */ BidController.createBid);
+router.post("/ownbids", /* autJWT.verifyAccessToken, */ BidController.getMybids);
 
 module.exports = router;
