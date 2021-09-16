@@ -1,5 +1,4 @@
 const mongoose = require('mongoose')
-//"mongodb://superAdmin:kR9LrRe22507BdMg@mongodbSubastas:27017/admin"
 mongoose
   .connect(process.env.MONGODB_URI, {
     user: process.env.MONGO_USER,

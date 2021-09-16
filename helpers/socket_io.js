@@ -160,6 +160,7 @@ const setTimer = async (io, socket_id) => {
   const startBid = (eachBid) => {
     return io.to(socket_id).emit(STARTING_BID, { bid_id: eachBid._id, active: true });
   }
+  console.log("activeBids", activeBids);
   if (activeBids.length > 0) {
     activeBids.forEach(eachBid => {
       let now = Date.now() + 2 * 60 * 60 * 1000;
