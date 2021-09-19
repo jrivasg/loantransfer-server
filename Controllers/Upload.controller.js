@@ -6,26 +6,7 @@ const path = require("path");
 module.exports = {
   savefiles: async (req, res) => {
     const { bid_id, chat_id } = req.body;
-    if (bid_id)
-      req.files.forEach((file) => {
-        console.log("file", file);
-        Bid.findByIdAndUpdate(
-          bid_id,
-          { $push: { documents: file } },
-          { new: true },
-          (err, bid) => {
-            if (err) res.status(500).json(err);
-            const doc = bid.documents[bid.documents.length - 1];
-            res.status(200).json({
-              message: "Archivo/s guardado/s",
-              doc_id: doc._id,
-              mymetype: doc.mimetype,
-              name: doc.originalname,
-            })
-          }
-        );
-      });
-
+    if (bid_id) res.status(200).json('Archivos guardados');
     if (chat_id)
       req.files.forEach((file) => {
         Chat.findByIdAndUpdate(

@@ -1,5 +1,7 @@
 const createError = require("http-errors");
 const Bid = require("../Models/bid.model");
+const User = require("../Models/User.model");
+var mongoose = require("mongoose");
 
 module.exports = {
   getAll: async (req, res, next) => {
@@ -30,10 +32,12 @@ module.exports = {
     yesterday.setDate(today.getDate() - 1);
     endTime.setDate(today.getDate() + 15);
 
-    console.log(yesterday, endTime)
+    console.log(yesterday, endTime);
     try {
       //console.log(req.payload);
-      const bid = await Bid.find({ starting_time: { $gte: yesterday, $lte: endTime } }).lean();
+      const bid = await Bid.find({
+        starting_time: { $gte: yesterday, $lte: endTime },
+      }).lean();
       res.status(200).json(bid);
     } catch (error) {
       next(error);
@@ -56,42 +60,77 @@ module.exports = {
     }
   },
 
-  createBid: async (req, res, next) => {
-    const { title, minimunAmount, totalDebt, principalMount, icons, bids, seller, documentation, starting_time, end_time } = req.body;
-    console.log('create bid', req.body);
-    let start = new Date(starting_time);
-    let time_start = new Date();
-    time_start = start.setHours(start.getHours() + 2);
+  getInfo: async (req, res, next) => {
+    try {
+      const users = await User.find().lean();
+      const _id = new mongoose.Types.ObjectId();
 
-    new Bid({
+      res.status(200).json({
+        users,
+        _id
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  createBid: async (req, res, next) => {
+    const {
+      _id,
       title,
-      info: [
-        {
-          title: "Precio inicial",
-          value: minimunAmount,
-        },
-        {
-          title: "Deuda total",
-          value: totalDebt,
-        },
-        {
-          title: "Deuda principal",
-          value: principalMount,
-        },
-      ],
-      seller,
+      minimunAmount,
+      totalDebt,
+      principalMount,
       icons,
       bids,
-      documentation,
-      starting_time: time_start,
-      end_time
+      seller,
+      documents,
+      starting_time,
+      end_time,
+    } = req.body;
+    console.log("documents", req.body.documents);
+
+    /* req.documents.files.forEach((file) => {
+      Bid.findByIdAndUpdate(
+        bid_id,
+        { $push: { documents: file } },
+        { new: true },
+        (err, bid) => {
+          if (err) res.status(500).json(err);
+          const doc = bid.documents[bid.documents.length - 1];
+          res.status(200).json({
+            message: "Archivo/s guardado/s",
+            doc_id: doc._id,
+            mymetype: doc.mimetype,
+            name: doc.originalname,
+          });
+        }
+      );
+    }); */
+
+    new Bid({
+      _id,
+      title,
+      seller,
+      bids,
+      documents: documents.file,
+      starting_time,
+      end_time,
     }).save((err, bid) => {
       if (err) {
         console.log(err);
         return res.status(500).json(err);
       }
-      console.log("Subasta creada", bid)
+      console.log("Subasta creada", bid);
       res.status(200).json(bid);
     });
   },
 };
+
+/*  let start = new Date(starting_time);
+    let time_start = new Date();
+    time_start = start.setHours(start.getHours() + 2);
+
+    let end = new Date(end_time);
+    let end_timer = new Date();
+    end_timer = end.setHours(start.getHours() + 2); */

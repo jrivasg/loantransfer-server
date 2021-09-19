@@ -8,5 +8,7 @@ router.get("/getall", autJWT.verifyAccessToken, BidController.getAll);
 router.get("/getactive", autJWT.verifyAccessToken, BidController.getActiveBids);
 router.post("/getsubbid", /* autJWT.verifyAccessToken, */ BidController.getOne);
 router.post("/create", /* autJWT.verifyAccessToken, */ BidController.createBid);
+// Lista sellers y ObjectId
+router.get("/getinfo", autJWT.verifyAccessToken, BidController.getInfo);
 
 module.exports = router;

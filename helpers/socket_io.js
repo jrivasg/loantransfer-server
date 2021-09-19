@@ -120,7 +120,7 @@ const saveSendLastBid = async (data, io, roomId, payload) => {
 
   let puja;
 
-  let lastBidRedis = JSON.parse(await getAsyncRedis('subbid_id1').catch((err) => {
+  let lastBidRedis = JSON.parse(await getAsyncRedis(subbid_id).catch((err) => {
     if (err) console.error(err)
   }));
   console.log('lastbid', lastBidRedis?.amount)
@@ -141,7 +141,7 @@ const saveSendLastBid = async (data, io, roomId, payload) => {
     active: true
   };
 
-  client.SET('subbid_id1', JSON.stringify(puja), "EX", 10 * 180, (err, reply) => {
+  client.SET(subbid_id, JSON.stringify(puja), "EX", 10 * 180, (err, reply) => {
     if (err) {
       console.log(err.message);
       //createError.InternalServerError();

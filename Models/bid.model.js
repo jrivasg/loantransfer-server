@@ -8,7 +8,6 @@ const BidSchema = new Schema(
     },
     title: {
       type: String,
-
     },
     info: [
       {
@@ -36,31 +35,6 @@ const BidSchema = new Schema(
         },
         value: {
           type: String,
-        },
-      },
-    ],
-    icons: [
-      {
-        _id: false,
-        icon: {
-          type: String,
-          enum: [
-            "BankOutlined",
-            "TeamOutlined",
-            "LineChartOutlined",
-            "CalendarOutlined",
-            "UserOutlined",
-          ],
-        },
-        title: {
-          type: String,
-          enum: [
-            "No judicializada",
-            "Mercado primario",
-            "Ticket medio 392€",
-            "DPD medio 260 días",
-            "100% cliente particular",
-          ],
         },
       },
     ],
@@ -95,54 +69,33 @@ const BidSchema = new Schema(
             },
           },
         ],
-        attachmentCount: {
-          type: Number,
-
-        },
         totalDebt: {
           type: Number,
-
         },
         totalDebtAvg: {
           type: Number,
-
         },
         totalDebtMed: {
           type: Number,
-
         },
         mainDebtAvg: {
           type: Number,
-
         },
         mainDebtMed: {
           type: Number,
-
         },
         accountsNumber: {
           type: Number,
-
         },
         minimunAmount: {
           type: Number,
-
         },
         dv: {
           type: Number,
-
         },
         mainDebt: {
           type: String,
-
         },
-        progressionPrincipal: {
-          type: Number,
-        },
-        progressionTotal: {
-          type: Number,
-        },
-        starting_time: { type: Date },
-        end_time: { type: Date },
         data: [
           {
             _id: false,
@@ -158,13 +111,17 @@ const BidSchema = new Schema(
             },
           },
         ],
-        documentation: [],
+        increment: {
+          type: Number,
+        },
+        info: {
+          type: String,
+        },
       },
     ],
     starting_time: { type: Date },
     end_time: { type: Date },
     active: { type: Boolean, default: false },
-    documentation: [],
     documents: [
       {
         fieldname: {
