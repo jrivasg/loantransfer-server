@@ -28,7 +28,7 @@ module.exports = {
     let yesterday = new Date();
     let endTime = new Date();
     yesterday.setDate(today.getDate() - 1);
-    endTime.setDate(today.getDate() + 15);
+    endTime.setDate(today.getDate() + 14);
 
     console.log(yesterday, endTime)
     try {

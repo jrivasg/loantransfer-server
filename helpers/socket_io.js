@@ -19,6 +19,9 @@ module.exports = (io) => {
     const payload = await verifyAccessToken(token);
     socket.join(roomId);
 
+    // Si la conexión es a la sala de pujas se añade a la lista de usuarios para tener log completo de todo el que haya entrado
+    if (roomId === 'subastas') logUsers(payload.aud);
+
     // Si hay subastas para empezar en la siguiente hora ponemos un temporizador, si hay alguna activa ya, se envía un mensaje con el id activo
     setTimer(io, socket.id);
 
@@ -143,7 +146,7 @@ const saveSendLastBid = async (data, io, roomId, payload) => {
   }
 }
 
-const getActiveBids = async () => {
+const getNextHourBids = async () => {
   const now = new Date();
   let startingMoment = new Date();
   startingMoment.setDate(now.getHours() + 1);
@@ -156,18 +159,22 @@ const getActiveBids = async () => {
 }
 
 const setTimer = async (io, socket_id) => {
-  const activeBids = await getActiveBids();
+  // Obtenemos las subastas activas en la proxima hora
+  const activeBids = await getNextHourBids();
+  // Método que envia el mensaje de inicio al socket
   const startBid = (eachBid) => {
     return io.to(socket_id).emit(STARTING_BID, { bid_id: eachBid._id, active: true });
   }
   if (activeBids.length > 0) {
     activeBids.forEach(eachBid => {
+      // Obtenemos la hora actual modificada para que coincida con la real
       let now = Date.now() + 2 * 60 * 60 * 1000;
+      // Se calcula el intervalo que hay entre la ahora y la hora de inicio de la subasta
       const interval = new Date(eachBid.starting_time).getTime() - now;
+      // Si el intervalo es negativo el hora de comienzo de la subasta ya ha pasado, por lo que se informa a quien se haya conectado al socket,
+      // si es positivo se inicializa un timer que al finalizar avisará al cliente conectado de que ha comenzado.
       if (interval > 0) {
-        setInterval(() => {
-          startBid(eachBid, io);
-        }, interval);
+        setTimeout(startBid(eachBid, io), interval);
       } else {
         startBid(eachBid, io);
       }
@@ -175,22 +182,6 @@ const setTimer = async (io, socket_id) => {
   }
 }
 
-const setTimer_prueba = async (io, socket_id) => {
-  const activeBids = await getActiveBids();
-  const sendBidInfo = (eachBid) => {
-    return io.to(socket_id).emit(STARTING_BID, { bid_id: eachBid._id, active: true });
-  }
-  if (activeBids.length > 0) {
-    activeBids.forEach(eachBid => {
-      let now = Date.now() + 2 * 60 * 60 * 1000;
-      const interval = new Date(eachBid.starting_time).getTime() - now;
-      if (interval > 0) {
-        setInterval(() => {
-          sendBidInfo(eachBid, io);
-        }, interval);
-      } else {
-        sendBidInfo(eachBid, io);
-      }
-    });
-  }
+const logUsers = async (io, socket_id) => {
+
 }
