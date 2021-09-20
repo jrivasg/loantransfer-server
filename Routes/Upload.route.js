@@ -12,7 +12,6 @@ var storage = multer.diskStorage({
   destination: function (req, file, cb) {
     //console.log(DIR + req.body.bid_id);
     const directory = (req.body.chat_id) ? req.body.chat_id : req.body.bid_id;
-    //const directory = req.body.chat_id || req.body.bid_id;
     !fs.existsSync(DIR + directory) && fs.mkdirSync(DIR + directory);
     cb(null, DIR + directory);
   },

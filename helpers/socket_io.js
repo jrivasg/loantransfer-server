@@ -11,7 +11,7 @@ const NEW_BID_EVENT = "newBidEvent";
 const CURRENT_AMOUNT = "currentAmount";
 const STARTING_BID = "startingBid";
 let users = [];
-let winningBids = {};
+let currentActiveBid = {};
 
 module.exports = (io) => {
   io.on("connection", async (socket) => {
@@ -20,6 +20,10 @@ module.exports = (io) => {
     const { roomId, token } = socket.handshake.query;
     const payload = await verifyAccessToken(token);
     socket.join(roomId);
+
+    // Si el cliente se ha conectado a la pagina de subastas se le añade a al array de usuarios
+    if (roomId === 'bidding') users.push({ user_id: payload.aud, bid_id: roomId });
+    // TODO al finalizar la subasta vaciar el array y guardarlo en db
 
     // Si hay subastas para empezar en la siguiente hora ponemos un temporizador, si hay alguna activa ya, se envía un mensaje con el id activo
     setTimer(io, socket.id);
@@ -153,11 +157,10 @@ const saveSendLastBid = async (data, io, roomId, payload) => {
   //}
 }
 
-const getActiveBids = async () => {
+const getNextHourBids = async () => {
   const now = new Date();
   let startingMoment = new Date();
   startingMoment.setDate(now.getHours() + 1);
-
   try {
     return await Bid.find({ starting_time: { $gte: now, $lte: startingMoment } }).lean();
   } catch (err) {
@@ -166,7 +169,7 @@ const getActiveBids = async () => {
 }
 
 const setTimer = async (io, socket_id) => {
-  const activeBids = await getActiveBids();
+  const activeBids = await getNextHourBids();
   const startBid = (eachBid) => {
     return io.to(socket_id).emit(STARTING_BID, { bid_id: eachBid._id, active: true });
   }
@@ -175,9 +178,7 @@ const setTimer = async (io, socket_id) => {
       let now = Date.now() + 2 * 60 * 60 * 1000;
       const interval = new Date(eachBid.starting_time).getTime() - now;
       if (interval > 0) {
-        setInterval(() => {
-          startBid(eachBid, io);
-        }, interval);
+        setTimeout(startBid(eachBid, io), interval);
       } else {
         startBid(eachBid);
       }

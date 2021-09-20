@@ -6,16 +6,47 @@ const path = require("path");
 module.exports = {
   savefiles: async (req, res) => {
     const { bid_id, chat_id } = req.body;
-    if (bid_id) res.status(200).json('Archivos guardados');
+
+    if (bid_id)
+      req.files.forEach(async (file) => {
+        const bidExists = await Bid.findById(bid_id).lean();
+        if (bidExists) {
+          Bid.findByIdAndUpdate(
+            bid_id,
+            {
+              $push: { documents: file }
+            },
+            { new: true },
+            (err, bid) => {
+              if (err) res.status(500).json(err);
+              const doc = bid.documents[bid.documents.length - 1];
+              res.status(200).json("Archivo/s guardado/s");
+            }
+          );
+        } else {
+          new Bid({
+            _id: bid_id,
+            documents: [file]
+          }).save((err, bid) => {
+            if (err) {
+              console.log(err);
+              return res.status(500).json(err);
+            }
+            res.status(200).json("Archivo/s guardado/s");
+          });
+        }
+
+
+      });
     if (chat_id)
       req.files.forEach((file) => {
         Chat.findByIdAndUpdate(
           chat_id,
-          { $push: { documentation: file } },
+          { $push: { documents: file } },
           { new: true },
           (err, chat) => {
             if (err) res.status(500).json(err);
-            const doc = chat.documentation[chat.documentation.length - 1];
+            const doc = chat.documents[chat.documents.length - 1];
             res.status(200).json({
               message: "Archivo/s guardado/s",
               doc_id: doc._id,

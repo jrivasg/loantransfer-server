@@ -9,35 +9,6 @@ const BidSchema = new Schema(
     title: {
       type: String,
     },
-    info: [
-      {
-        _id: false,
-        title: {
-          type: String,
-        },
-        value: {
-          type: String,
-        },
-      },
-      {
-        _id: false,
-        title: {
-          type: String,
-        },
-        value: {
-          type: String,
-        },
-      },
-      {
-        _id: false,
-        title: {
-          type: String,
-        },
-        value: {
-          type: String,
-        },
-      },
-    ],
     seller: { type: Schema.Types.ObjectId, ref: "User" },
     bids: [
       {

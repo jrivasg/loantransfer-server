@@ -52,8 +52,7 @@ module.exports = {
         (sub) => String(sub._id) === String(subbid_id)
       );
 
-      //console.log(subbid);
-
+      subbid.documents = bid.documents;
       res.status(200).json(subbid);
     } catch (error) {
       next(error);
@@ -84,53 +83,47 @@ module.exports = {
       icons,
       bids,
       seller,
-      documents,
       starting_time,
       end_time,
     } = req.body;
-    console.log("documents", req.body.documents);
 
-    /* req.documents.files.forEach((file) => {
+    const bidExists = await Bid.findById(_id).lean();
+    if (bidExists) {
       Bid.findByIdAndUpdate(
-        bid_id,
-        { $push: { documents: file } },
+        _id,
+        {
+          title,
+          minimunAmount,
+          totalDebt,
+          principalMount,
+          icons,
+          bids,
+          seller,
+          starting_time,
+          end_time,
+        },
         { new: true },
         (err, bid) => {
           if (err) res.status(500).json(err);
-          const doc = bid.documents[bid.documents.length - 1];
-          res.status(200).json({
-            message: "Archivo/s guardado/s",
-            doc_id: doc._id,
-            mymetype: doc.mimetype,
-            name: doc.originalname,
-          });
+          res.status(200).json(bid);
         }
       );
-    }); */
-
-    new Bid({
-      _id,
-      title,
-      seller,
-      bids,
-      documents: documents.file,
-      starting_time,
-      end_time,
-    }).save((err, bid) => {
-      if (err) {
-        console.log(err);
-        return res.status(500).json(err);
-      }
-      console.log("Subasta creada", bid);
-      res.status(200).json(bid);
-    });
+    } else {
+      new Bid({
+        _id,
+        title,
+        seller,
+        bids,
+        starting_time,
+        end_time,
+      }).save((err, bid) => {
+        if (err) {
+          console.log(err);
+          return res.status(500).json(err);
+        }
+        console.log("Subasta creada", bid);
+        res.status(200).json(bid);
+      });
+    }
   },
 };
-
-/*  let start = new Date(starting_time);
-    let time_start = new Date();
-    time_start = start.setHours(start.getHours() + 2);
-
-    let end = new Date(end_time);
-    let end_timer = new Date();
-    end_timer = end.setHours(start.getHours() + 2); */
