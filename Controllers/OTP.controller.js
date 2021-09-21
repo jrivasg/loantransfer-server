@@ -13,7 +13,7 @@ module.exports = {
 
       if (!type) return res.status(400).send({ error: "tipo no recibido" });
 
-      //Generate OTP
+      // Generate OTP
       const otp = otpGenerator.generate(6, {
         alphabets: false,
         upperCase: false,
@@ -22,7 +22,7 @@ module.exports = {
       const now = new Date();
       const expiration_time = Date.now() + (1000 * 60 * 10);
 
-      //Create OTP instance in DB
+      // Create OTP instance in DB
       const otpEl = {
         otp: otp,
         expiration_time: expiration_time,

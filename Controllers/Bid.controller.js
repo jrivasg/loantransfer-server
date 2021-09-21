@@ -2,6 +2,7 @@ const createError = require("http-errors");
 const Bid = require("../Models/bid.model");
 const User = require("../Models/User.model");
 var mongoose = require("mongoose");
+const client = require("../helpers/init_redis");
 
 module.exports = {
   getAll: async (req, res, next) => {
@@ -38,7 +39,8 @@ module.exports = {
       const bid = await Bid.find({
         starting_time: { $gte: yesterday, $lte: endTime },
       }).lean();
-      res.status(200).json(bid);
+
+      res.status(200).json({ bid, now: new Date() });
     } catch (error) {
       next(error);
     }
@@ -105,6 +107,7 @@ module.exports = {
         { new: true },
         (err, bid) => {
           if (err) res.status(500).json(err);
+          initilizeRedisBidObject(bid);
           res.status(200).json(bid);
         }
       );
@@ -121,9 +124,30 @@ module.exports = {
           console.log(err);
           return res.status(500).json(err);
         }
-        console.log("Subasta creada", bid);
+        initilizeRedisBidObject(bid);
         res.status(200).json(bid);
       });
     }
   },
 };
+
+const initilizeRedisBidObject = (bid) => {
+  bid.bids.forEach(({ minimunAmount, _id }) => {
+    const puja = [{
+      from: null,
+      time: new Date(),
+      bid_id: bid._id,
+      amount: minimunAmount,
+      subbid_id: _id,
+      active: false,
+      finish: false,
+      endTime: new Date(bid.end_time)
+    }];
+    client.SET(String(_id), JSON.stringify(puja), (err, reply) => {
+      if (err) console.log(err.message);
+    });
+    client.SET(String(bid._id), JSON.stringify({ endTime: new Date(bid.end_time) }), (err, reply) => {
+      if (err) console.log(err.message);
+    });
+  })
+}

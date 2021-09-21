@@ -3,18 +3,12 @@ const Schema = mongoose.Schema;
 
 const BidSchema = new Schema(
   {
-    Id: {
-      type: Number,
-    },
-    title: {
-      type: String,
-    },
+    Id: { type: Number },
+    title: { type: String },
     seller: { type: Schema.Types.ObjectId, ref: "User" },
     bids: [
       {
-        reference: {
-          type: String,
-        },
+        reference: { type: String },
         icons: [
           {
             _id: false,
@@ -40,33 +34,15 @@ const BidSchema = new Schema(
             },
           },
         ],
-        totalDebt: {
-          type: Number,
-        },
-        totalDebtAvg: {
-          type: Number,
-        },
-        totalDebtMed: {
-          type: Number,
-        },
-        mainDebtAvg: {
-          type: Number,
-        },
-        mainDebtMed: {
-          type: Number,
-        },
-        accountsNumber: {
-          type: Number,
-        },
-        minimunAmount: {
-          type: Number,
-        },
-        dv: {
-          type: Number,
-        },
-        mainDebt: {
-          type: String,
-        },
+        totalDebt: { type: Number },
+        totalDebtAvg: { type: Number },
+        totalDebtMed: { type: Number },
+        mainDebtAvg: { type: Number },
+        mainDebtMed: { type: Number },
+        accountsNumber: { type: Number },
+        minimunAmount: { type: Number },
+        dv: { type: Number },
+        mainDebt: { type: String },
         data: [
           {
             _id: false,
@@ -74,20 +50,12 @@ const BidSchema = new Schema(
               type: Schema.Types.ObjectId,
               ref: "user",
             },
-            amount: {
-              type: Number,
-            },
-            time: {
-              type: Number,
-            },
+            amount: { type: Number },
+            time: { type: Number },
           },
         ],
-        increment: {
-          type: Number,
-        },
-        info: {
-          type: String,
-        },
+        increment: { type: Number },
+        info: { type: String },
       },
     ],
     starting_time: { type: Date },
@@ -95,33 +63,18 @@ const BidSchema = new Schema(
     active: { type: Boolean, default: false },
     documents: [
       {
-        fieldname: {
-          type: String,
-        },
-        originalname: {
-          type: String,
-        },
-        encoding: {
-          type: String,
-        },
-        mimetype: {
-          type: String,
-        },
-        destination: {
-          type: String,
-        },
-        filename: {
-          type: String,
-        },
-        path: {
-          type: String,
-        },
-        size: {
-          type: String,
-        },
+        fieldname: { type: String },
+        originalname: { type: String },
+        encoding: { type: String },
+        mimetype: { type: String },
+        destination: { type: String },
+        filename: { type: String },
+        path: { type: String },
+        size: { type: String },
       },
     ],
     final_buyer: { type: Schema.Types.ObjectId, ref: "User" },
+    finish: { type: Boolean, default: false },
   },
   {
     timestamps: true,

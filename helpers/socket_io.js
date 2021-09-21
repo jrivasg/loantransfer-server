@@ -9,8 +9,9 @@ const getAsyncRedis = promisify(client.get).bind(client);
 const NEW_CHAT_MESSAGE_EVENT = "newChatMessage";
 const NEW_BID_EVENT = "newBidEvent";
 const STARTING_BID = "startingBid";
+const FINISHING_BID = "finishingBid";
 let users = [];
-let currentActiveBid = {};
+//let finishTimer = setFinishTimer();
 
 module.exports = (io) => {
   io.on("connection", async (socket) => {
@@ -25,11 +26,14 @@ module.exports = (io) => {
     // TODO al finalizar la subasta vaciar el array de usuarios y guardarlo en db
 
     // Si hay subastas para empezar en la siguiente hora ponemos un temporizador, si hay alguna activa ya, se envía un mensaje con el id activo
-    setTimer(io, socket.id);
+    setStartTimer(io, socket.id);
+
+    //setFinishTimer(io, socket.id);
 
     // Listen for new CHAT messages
     socket.on(NEW_CHAT_MESSAGE_EVENT, (data) => {
       // Se guarda cada mensaje que se transmite a traves del socket en el objeto de la conversacion y se emite al resto de la sala
+      console.log('evento mensaje chat')
       saveChatMessage(data, io, roomId, payload);
     });
 
@@ -39,17 +43,13 @@ module.exports = (io) => {
       saveSendLastBid(data, io, roomId, payload)
     });
 
-    // Leave the room if the user closes the socket
-    socket.on("disconnect", () => {
-      socket.leave(roomId);
-    });
-
     // eventos para el chat
     socket.on("disconnect", (reason) => {
       users = users.filter((user) => user.socket_id !== socket.id);
       //console.log("users tras desconexion", users);
       socket.emit("user list", users);
       socket.broadcast.emit("user list", users);
+      socket.leave(roomId);
     });
   });
 };
@@ -100,60 +100,55 @@ const saveChatMessage = (data, io, roomId, payload) => {
 const saveSendLastBid = async (data, io, roomId, payload) => {
   const { bid_id, amount, subbid_id } = data.body;
   try {
-    const bid = Bid.findById(bid_id).lean();
-    //console.log(bid)
-    /* const subbid = bid.bids.find(eachbid => String(eachbid.subbid_id) === String(subbid_id));
-    console.log(subbid) */
-    /*  Bid.findByIdAndUpdate(
-       roomId,
-       {
-         $push: {
-           messages: message,
-         },
-       },
-       { new: true },
-       (err, doc) => {
-         if (err) console.log("Error al guardar el mensaje");
-         //console.log(doc);
-       }
-     ); */
+
+    // Obtenemos la subasta y el lote, asi como su log de pujas en redis.
+    const bid = await Bid.findById(bid_id).lean();
+    const subbid = bid.bids.find(eachbid => String(eachbid._id) === String(subbid_id));
+
+    let lastBidRedisArray = JSON.parse(await getAsyncRedis(subbid_id).catch((err) => {
+      if (err) console.error(err)
+    }));
+    // Obtenemos el la últimas puja
+    const lastBidRedis = lastBidRedisArray[lastBidRedisArray.length - 1];
+
+    // Si la ultima cantidad guardad no es la mismas q esta observando al pujar el cliente porque otro se haya adelantado, se desecha.
+    // También 
+    if (lastBidRedis.amount !== amount || lastBidRedis.from === payload.aud) return;
+
+    // Obtenemos el tiempo que queda de subasta de redis
+    console.log('bid._id', bid._id)
+    let finishTime = JSON.parse(await getAsyncRedis(String(bid._id)).catch((err) => {
+      if (err) console.error(err)
+    }));
+
+    // Creamos una nueva puja con los datos del pujador y de las cantidades y se añade al log
+    const puja = {
+      from: payload.aud,
+      time: new Date(),
+      bid_id,
+      amount: lastBidRedis.amount + subbid.increment,
+      subbid_id,
+      active: true,
+    };
+
+    // Se incrementa el tiempo de la subasta en 2 minutos en cada puja    
+    const newFinish = { "endTime": new Date(finishTime.endTime).getTime() + 2 * 60 * 1000 };
+    client.SET(bid_id, JSON.stringify(newFinish), (err, reply) => {
+      if (err) console.log(err.message);
+    });
+    puja.endTime = new Date(newFinish.endTime);
+
+    lastBidRedisArray.push(puja);
+
+    // Se guarda de nuevo el log en redis
+    client.SET(subbid_id, JSON.stringify(lastBidRedisArray), (err, reply) => {
+      if (err) console.log(err.message);
+    });
+
+    io.in(roomId).emit(NEW_BID_EVENT, puja);
   } catch (error) {
     console.log(error);
   }
-
-  let puja;
-
-  let lastBidRedis = JSON.parse(await getAsyncRedis(subbid_id).catch((err) => {
-    if (err) console.error(err)
-  }));
-  console.log('lastbid', lastBidRedis?.amount)
-
-  let tempAmount = 0;
-  if (lastBidRedis) {
-    tempAmount = Number(lastBidRedis.amount) + 500
-  } else {
-    tempAmount = 500
-  }
-
-  puja = {
-    from: payload.aud,
-    time: new Date(),
-    bid_id,
-    amount: tempAmount,
-    subbid_id,
-    active: true
-  };
-
-  client.SET(subbid_id, JSON.stringify(puja), "EX", 100 * 180, (err, reply) => {
-    if (err) {
-      console.log(err.message);
-      //createError.InternalServerError();
-    }
-    console.log("Puja Guardada");
-  });
-
-  io.in(roomId).emit(NEW_BID_EVENT, puja);
-  //}
 }
 
 const getNextHourBids = async () => {
@@ -170,24 +165,44 @@ const getNextHourBids = async () => {
   }
 }
 
-const setTimer = async (io, socket_id) => {
+const setStartTimer = async (io, socket_id) => {
   const nextHourBids = await getNextHourBids();
   //console.log('nextHourBids', nextHourBids);
-  const startBid = (eachBid, subbidCurrrentResult) => {
-    return io.to(socket_id).emit(STARTING_BID, subbidCurrrentResult);
+  const startBid = (subbidCurrrentResult, eachBid) => {
+    const tempArray = subbidCurrrentResult.map(eachsubbid => {
+
+      const now = Date.now();
+      const startTime = new Date(eachBid.starting_time).getTime();
+      const endTime = new Date(eachBid.end_time).getTime();
+      //console.log(eachsubbid.subbid_id, startTime < now && now < endTime)
+      eachsubbid.active = startTime < now && now < endTime;
+      return eachsubbid;
+    })
+    //console.log('evento ' + STARTING_BID + ' enviado', tempArray)
+    return io.to(socket_id).emit(STARTING_BID, tempArray);
   }
+
   if (nextHourBids.length > 0) {
     nextHourBids.forEach(async eachBid => {
-      let now = Date.now() + 2 * 60 * 60 * 1000;
-      const interval = new Date(eachBid.starting_time).getTime() - now;
+      // Si queda tiempo para el inicio de la puja, se pone un temporizador y al final de la misma se envia la info sobre las pujas obtenida de redis
+      // Si ya ha empezado, se busca y envia directamente la info.
+      const interval = new Date(eachBid.starting_time).getTime() - Date.now();
+      //console.log('interval', interval / 1000 / 60)
       if (interval > 0) {
         currentActiveBid = eachBid;
-        setTimeout(startBid(eachBid), interval);
+        //console.log('Timeout programado para dentro de ' + interval / 1000 / 60 + ' min')
+        setTimeout(async () => {
+          console.log('Timeout ejecutado')
+          // Se obtienen los lotes y se busca en redis la info de la ultima puja, o la inicial si aun no se ha iniciado
+          const subbidCurrrentResult = await getSubbidCurrrentResult(eachBid);
+          startBid(subbidCurrrentResult, eachBid)
+        }, interval);
       } else {
-        // Obtenemos todas las subbids para buscarlas en redis y mandar los resutlados actuales
+        // Se obtienen los lotes y se busca en redis la info de la ultima puja, o la inicial si aun no se ha iniciado
         const subbidCurrrentResult = await getSubbidCurrrentResult(eachBid);
-        console.log('subbidCurrrentResult', subbidCurrrentResult);
-        startBid(eachBid, subbidCurrrentResult);
+        // Activamos cada lote para que empieze
+        //console.log('puja ya comenzada')
+        startBid(subbidCurrrentResult, eachBid);
       }
     });
   }
@@ -202,10 +217,54 @@ const getSubbidCurrrentResult = async (eachBid) => {
     const tempSubbid = (JSON.parse(await getAsyncRedis(subbid_id).catch((err) => {
       if (err) console.error(err)
     })));
-    subbids.push(tempSubbid);
+
+    tempSubbid && subbids.push(tempSubbid[tempSubbid.length - 1]);
     promises.push(subbids);
   }
 
   await Promise.all(subbids)
   return subbids;
+}
+
+const setFinishTimer = async (endTime, addedTime) => {
+  const nextHourBids = await getNextHourBids();
+
+  const finishBid = (subbidCurrrentResult, eachBid) => {
+    const tempArray = subbidCurrrentResult.map(eachsubbid => {
+
+      const now = Date.now();
+      const startTime = new Date(eachBid.starting_time).getTime();
+      const endTime = new Date(eachBid.end_time).getTime();
+      //console.log(eachsubbid.subbid_id, startTime < now && now < endTime)
+      eachsubbid.active = startTime < now && now < endTime;
+      return eachsubbid;
+    })
+    //console.log('evento ' + FINISHING_BID + ' enviado', tempArray)
+    return io.to(socket_id).emit(FINISHING_BID, tempArray);
+  }
+
+  setTimeout(() => {
+    if (nextHourBids.length > 0) {
+      nextHourBids.forEach(async eachBid => {
+        // Si queda tiempo para el inicio de la puja, se pone un temporizador y al final de la misma se envia la info sobre las pujas obtenida de redis
+        // Si ya ha empezado, se busca y envia directamente la info.
+        const interval = new Date(eachBid.end_time).getTime() - Date.now();
+        //console.log('interval', interval / 1000 / 60)
+        if (interval > 0) {
+          //console.log('Timeout programado para dentro de ' + interval / 1000 / 60 + ' min')
+          setTimeout(async () => {
+            // Se obtienen los lotes y se busca en redis la info de la ultima puja, o la inicial si aun no se ha iniciado
+            const subbidCurrrentResult = await getSubbidCurrrentResult(eachBid);
+            finishBid(subbidCurrrentResult, eachBid)
+          }, interval);
+        } else {
+          // Se obtienen los lotes y se busca en redis la info de la ultima puja, o la inicial si aun no se ha iniciado
+          const subbidCurrrentResult = await getSubbidCurrrentResult(eachBid);
+          // Activamos cada lote para que empieze
+          //console.log('puja ya comenzada')
+          finishBid(subbidCurrrentResult, eachBid);
+        }
+      });
+    }
+  }, interval)
 }

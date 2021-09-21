@@ -46,6 +46,7 @@ module.exports = {
           { new: true },
           (err, chat) => {
             if (err) res.status(500).json(err);
+            //console.log(chat)
             const doc = chat.documents[chat.documents.length - 1];
             res.status(200).json({
               message: "Archivo/s guardado/s",
@@ -65,11 +66,11 @@ module.exports = {
         return res.status(500).json(err);
       });
     //console.log(req.body);
-    bid && res.status(200).json(bid.documentation);
+    bid && res.status(200).json(bid.documents);
   },
   getFile: async (req, res) => {
     const { doc_id, bid_id, chat_id } = req.query;
-    console.log(req.query);
+    //console.log(req.query);
     let doc;
     if (bid_id) {
       const bid = await Bid.findById(bid_id)
@@ -86,7 +87,7 @@ module.exports = {
           console.log(err);
           return res.status(500).json(err);
         });
-      doc = chat.documentation.find(
+      doc = chat.documents.find(
         (doc) => String(doc._id) === String(doc_id)
       );
     }
@@ -113,11 +114,11 @@ module.exports = {
       }
       Bid.findByIdAndUpdate(
         bid_id,
-        { $pull: { documentation: { _id: doc_id } } },
+        { $pull: { document: { _id: doc_id } } },
         { new: true },
         (err, bid) => {
           if (err) return res.status(500).json(err);
-          res.status(200).json(bid.documentation);
+          res.status(200).json(bid.document);
         }
       );
     });
