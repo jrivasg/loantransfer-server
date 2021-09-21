@@ -8,7 +8,6 @@ const getAsyncRedis = promisify(client.get).bind(client);
 
 const NEW_CHAT_MESSAGE_EVENT = "newChatMessage";
 const NEW_BID_EVENT = "newBidEvent";
-const CURRENT_AMOUNT = "currentAmount";
 const STARTING_BID = "startingBid";
 let users = [];
 let currentActiveBid = {};
@@ -23,7 +22,7 @@ module.exports = (io) => {
 
     // Si el cliente se ha conectado a la pagina de subastas se le añade a al array de usuarios
     if (roomId === 'bidding') users.push({ user_id: payload.aud, bid_id: roomId });
-    // TODO al finalizar la subasta vaciar el array y guardarlo en db
+    // TODO al finalizar la subasta vaciar el array de usuarios y guardarlo en db
 
     // Si hay subastas para empezar en la siguiente hora ponemos un temporizador, si hay alguna activa ya, se envía un mensaje con el id activo
     setTimer(io, socket.id);
@@ -145,7 +144,7 @@ const saveSendLastBid = async (data, io, roomId, payload) => {
     active: true
   };
 
-  client.SET(subbid_id, JSON.stringify(puja), "EX", 10 * 180, (err, reply) => {
+  client.SET(subbid_id, JSON.stringify(puja), "EX", 100 * 180, (err, reply) => {
     if (err) {
       console.log(err.message);
       //createError.InternalServerError();
@@ -160,28 +159,53 @@ const saveSendLastBid = async (data, io, roomId, payload) => {
 const getNextHourBids = async () => {
   const now = new Date();
   let startingMoment = new Date();
-  startingMoment.setDate(now.getHours() + 1);
+  startingMoment.setHours(now.getHours() - 1);
+  let endingMoment = new Date();
+  endingMoment.setHours(now.getHours() + 1);
+
   try {
-    return await Bid.find({ starting_time: { $gte: now, $lte: startingMoment } }).lean();
+    return await Bid.find({ starting_time: { $gte: startingMoment, $lte: endingMoment } }).lean();
   } catch (err) {
     console.err(err)
   }
 }
 
 const setTimer = async (io, socket_id) => {
-  const activeBids = await getNextHourBids();
-  const startBid = (eachBid) => {
-    return io.to(socket_id).emit(STARTING_BID, { bid_id: eachBid._id, active: true });
+  const nextHourBids = await getNextHourBids();
+  //console.log('nextHourBids', nextHourBids);
+  const startBid = (eachBid, subbidCurrrentResult) => {
+    return io.to(socket_id).emit(STARTING_BID, subbidCurrrentResult);
   }
-  if (activeBids.length > 0) {
-    activeBids.forEach(eachBid => {
+  if (nextHourBids.length > 0) {
+    nextHourBids.forEach(async eachBid => {
       let now = Date.now() + 2 * 60 * 60 * 1000;
       const interval = new Date(eachBid.starting_time).getTime() - now;
       if (interval > 0) {
-        setTimeout(startBid(eachBid, io), interval);
+        currentActiveBid = eachBid;
+        setTimeout(startBid(eachBid), interval);
       } else {
-        startBid(eachBid);
+        // Obtenemos todas las subbids para buscarlas en redis y mandar los resutlados actuales
+        const subbidCurrrentResult = await getSubbidCurrrentResult(eachBid);
+        console.log('subbidCurrrentResult', subbidCurrrentResult);
+        startBid(eachBid, subbidCurrrentResult);
       }
     });
   }
+}
+
+const getSubbidCurrrentResult = async (eachBid) => {
+  const subbidIdArray = eachBid.bids.map(eachsubbid => String(eachsubbid._id));
+  const subbids = [];
+  const promises = [];
+
+  for (const subbid_id of subbidIdArray) {
+    const tempSubbid = (JSON.parse(await getAsyncRedis(subbid_id).catch((err) => {
+      if (err) console.error(err)
+    })));
+    subbids.push(tempSubbid);
+    promises.push(subbids);
+  }
+
+  await Promise.all(subbids)
+  return subbids;
 }
