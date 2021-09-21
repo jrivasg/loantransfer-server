@@ -1,4 +1,5 @@
 const express = require("express");
+require("dotenv").config();
 const app = express();
 const http = require("http").createServer(app);
 const io = require("socket.io")(http, {
@@ -7,10 +8,8 @@ const io = require("socket.io")(http, {
   },
 });
 require("./helpers/socket_io")(io);
-
 const logger = require("morgan");
 const createError = require("http-errors");
-require("dotenv").config();
 const cors = require("cors");
 //const cookieParser = require("cookie-parser");
 
