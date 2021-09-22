@@ -100,7 +100,6 @@ const saveChatMessage = (data, io, roomId, payload) => {
 const saveSendLastBid = async (data, io, roomId, payload) => {
   const { bid_id, amount, subbid_id } = data.body;
   try {
-
     // Obtenemos la subasta y el lote, asi como su log de pujas en redis.
     const bid = await Bid.findById(bid_id).lean();
     const subbid = bid.bids.find(eachbid => String(eachbid._id) === String(subbid_id));
@@ -112,15 +111,19 @@ const saveSendLastBid = async (data, io, roomId, payload) => {
     const lastBidRedis = lastBidRedisArray[lastBidRedisArray.length - 1];
 
     // Si la ultima cantidad guardad no es la mismas q esta observando al pujar el cliente porque otro se haya adelantado, se desecha.
-    // También 
+    // También se comprueba si la ultima puja fue propia para no pujar doble
     if (lastBidRedis.amount !== amount || lastBidRedis.from === payload.aud) return;
 
-    // Obtenemos el tiempo que queda de subasta de redis
-    console.log('bid._id', bid._id)
-    let finishTime = JSON.parse(await getAsyncRedis(String(bid._id)).catch((err) => {
-      if (err) console.error(err)
-    }));
+    // Le sumamos 2 minutos al tiempo actual de fin si quedan menos de 10 min
+    let newEndDateTime = new Date(lastBidRedis.endTime);
+    if (new Date(lastBidRedis.endTime).getTime() - new Date().getTime() < 10 * 60 * 1000) {
+      newEndDateTime = new Date(new Date(lastBidRedis.endTime).getTime() + 2 * 60 * 1000);
+      Bid.findByIdAndUpdate(bid_id, {
+        end_time: newEndDateTime
+      })
+    }
 
+    //console.log('newEndDateTime', newEndDateTime)
     // Creamos una nueva puja con los datos del pujador y de las cantidades y se añade al log
     const puja = {
       from: payload.aud,
@@ -129,14 +132,8 @@ const saveSendLastBid = async (data, io, roomId, payload) => {
       amount: lastBidRedis.amount + subbid.increment,
       subbid_id,
       active: true,
+      endTime: newEndDateTime
     };
-
-    // Se incrementa el tiempo de la subasta en 2 minutos en cada puja    
-    const newFinish = { "endTime": new Date(finishTime.endTime).getTime() + 2 * 60 * 1000 };
-    client.SET(bid_id, JSON.stringify(newFinish), (err, reply) => {
-      if (err) console.log(err.message);
-    });
-    puja.endTime = new Date(newFinish.endTime);
 
     lastBidRedisArray.push(puja);
 
@@ -144,6 +141,9 @@ const saveSendLastBid = async (data, io, roomId, payload) => {
     client.SET(subbid_id, JSON.stringify(lastBidRedisArray), (err, reply) => {
       if (err) console.log(err.message);
     });
+
+    // Calculamos el nuevo tiempo de fin para mandarlo en el evento puja
+    puja.endTime = new Date(puja.endTime).getTime() - new Date().getTime();
 
     io.in(roomId).emit(NEW_BID_EVENT, puja);
   } catch (error) {
@@ -154,9 +154,9 @@ const saveSendLastBid = async (data, io, roomId, payload) => {
 const getNextHourBids = async () => {
   const now = new Date();
   let startingMoment = new Date();
-  startingMoment.setHours(now.getHours() - 1);
+  startingMoment.setHours(now.getHours() - 2);
   let endingMoment = new Date();
-  endingMoment.setHours(now.getHours() + 1);
+  endingMoment.setHours(now.getHours() + 2);
 
   try {
     return await Bid.find({ starting_time: { $gte: startingMoment, $lte: endingMoment } }).lean();
@@ -217,7 +217,8 @@ const getSubbidCurrrentResult = async (eachBid) => {
     const tempSubbid = (JSON.parse(await getAsyncRedis(subbid_id).catch((err) => {
       if (err) console.error(err)
     })));
-
+    tempSubbid[tempSubbid.length - 1].endTime = new Date(tempSubbid[tempSubbid.length - 1].endTime).getTime() - new Date().getTime()
+    console.log('tempSubbid', tempSubbid);
     tempSubbid && subbids.push(tempSubbid[tempSubbid.length - 1]);
     promises.push(subbids);
   }
