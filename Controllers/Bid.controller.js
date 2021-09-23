@@ -30,16 +30,16 @@ module.exports = {
     let today = new Date();
     let yesterday = new Date();
     let endTime = new Date();
-    yesterday.setDate(today.getDate() - 1);
+    yesterday.setHours(today.getHours() - 8);
     endTime.setDate(today.getDate() + 14);
 
-    console.log(yesterday, endTime);
     try {
       //console.log(req.payload);
       const bid = await Bid.find({
         starting_time: { $gte: yesterday, $lte: endTime },
       }).lean();
 
+      bid.sort(compare);
       res.status(200).json({ bid, now: new Date() });
     } catch (error) {
       next(error);
@@ -148,8 +148,21 @@ const initilizeRedisBidObject = (bid) => {
     client.SET(String(_id), JSON.stringify(puja), (err, reply) => {
       if (err) console.log(err.message);
     });
-    client.SET(String(bid._id), JSON.stringify({ endTime: new Date(bid.end_time) }), (err, reply) => {
+    /* client.SET(String(bid._id), JSON.stringify({ endTime: new Date(bid.end_time) }), (err, reply) => {
       if (err) console.log(err.message);
-    });
+    }); */
   })
+}
+
+const compare = (a, b) => {
+  const firstElement = new Date(a.end_time).getTime();
+  const secondElement = new Date(b.end_time).getTime();
+
+  if (firstElement < secondElement) {
+    return -1;
+  }
+  if (firstElement > secondElement) {
+    return 1;
+  }
+  return 0;
 }
