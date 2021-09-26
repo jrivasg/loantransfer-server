@@ -70,7 +70,7 @@ module.exports = {
 
       res.status(200).json({
         users,
-        _id
+        _id,
       });
     } catch (error) {
       next(error);
@@ -131,28 +131,43 @@ module.exports = {
       });
     }
   },
+  deleteBid: async (req, res, next) => {
+    try {
+      Bid.findOneAndDelete(req.body.bid_id, (err, bid) => {
+        if (err) {
+          console.log(err);
+          return res.status(500).json(err);
+        }        
+        res.status(200).json('Subasta borrada');
+      });
+    } catch (error) {
+      console.log(error);
+    }
+  },
 };
 
 const initilizeRedisBidObject = (bid) => {
   bid.bids.forEach(({ minimunAmount, _id }) => {
-    const puja = [{
-      from: null,
-      time: new Date(),
-      bid_id: bid._id,
-      amount: minimunAmount,
-      subbid_id: _id,
-      active: false,
-      finish: false,
-      endTime: new Date(bid.end_time)
-    }];
+    const puja = [
+      {
+        from: null,
+        time: new Date(),
+        bid_id: bid._id,
+        amount: minimunAmount,
+        subbid_id: _id,
+        active: false,
+        finish: false,
+        endTime: new Date(bid.end_time),
+      },
+    ];
     client.SET(String(_id), JSON.stringify(puja), (err, reply) => {
       if (err) console.log(err.message);
     });
     /* client.SET(String(bid._id), JSON.stringify({ endTime: new Date(bid.end_time) }), (err, reply) => {
       if (err) console.log(err.message);
     }); */
-  })
-}
+  });
+};
 
 const compare = (a, b) => {
   const firstElement = new Date(a.end_time).getTime();
@@ -165,4 +180,4 @@ const compare = (a, b) => {
     return 1;
   }
   return 0;
-}
+};
