@@ -2,20 +2,26 @@ const express = require("express");
 require("dotenv").config();
 const app = express();
 const http = require("http").createServer(app);
-const io = require("socket.io")(http, {
-  cors: {
-    origin: '*',
-  },
-});
-require("./helpers/socket_io")(io);
 const logger = require("morgan");
 const createError = require("http-errors");
 const cors = require("cors");
 //const cookieParser = require("cookie-parser");
 
 require("./helpers/init_mongodb");
-const { verifyAccessToken } = require("./helpers/jwt_helper");
+//const { verifyAccessToken } = require("./helpers/jwt_helper");
 require("./helpers/init_redis");
+
+// Configuración Socket.io
+const io = require("socket.io")(http, {
+  cors: {
+    origin: '*',
+  },
+});
+// Importamos los diferentes sockets
+//require("./Controllers/Socket/socket_io")(io);
+require("./Controllers/Socket/Chat.socket")(io);
+require("./Controllers/Socket/Bid.socket")(io);
+require("./Controllers/Socket/Notification.socket")(io);
 
 const {
   AuthRoute,

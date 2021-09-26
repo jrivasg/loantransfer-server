@@ -1,22 +1,22 @@
-const mongoose = require("mongoose");
-const Chat = require("../Models/chat.model");
-const Bid = require("../Models/bid.model");
+const Bid = require("../../Models/bid.model");
 const JWT = require("jsonwebtoken");
 const { promisify } = require("util");
-const client = require("../helpers/init_redis");
+const client = require("../../helpers/init_redis");
 const getAsyncRedis = promisify(client.get).bind(client);
 
-const NEW_CHAT_MESSAGE_EVENT = "newChatMessage";
 const NEW_BID_EVENT = "newBidEvent";
 const STARTING_BID = "startingBid";
 const FINISHING_BID = "finishingBid";
 let users = [];
-//let finishTimer = setFinishTimer();
+
+let bidnsp = null;
 
 module.exports = (io) => {
-  io.on("connection", async (socket) => {
-    console.log("cliente conectado => ", socket.id);
-    // Join a conversation
+  bidnsp = io.of("bid");
+  bidnsp.on("connection", async (socket) => {
+    console.log(socket.id + " connected to bid socket");
+
+    // Unimos a la sala de subastas
     const { roomId, token } = socket.handshake.query;
     const payload = await verifyAccessToken(token);
     socket.join(roomId);
@@ -26,25 +26,14 @@ module.exports = (io) => {
 
     //setFinishTimer(io, socket.id);
 
-    // Listen for new CHAT messages
-    socket.on(NEW_CHAT_MESSAGE_EVENT, (data) => {
-      // Se guarda cada mensaje que se transmite a traves del socket en el objeto de la conversacion y se emite al resto de la sala
-      console.log("evento mensaje chat");
-      saveChatMessage(data, io, roomId, payload);
-    });
-
     // Listen for new bids
     socket.on(NEW_BID_EVENT, (data) => {
       // Se comprueba si la puja es valida y si lo es se guarda en el log
       saveSendLastBid(data, io, roomId, payload);
     });
 
-    // eventos para el chat
+    // Eventos para la desconexión
     socket.on("disconnect", (reason) => {
-      users = users.filter((user) => user.socket_id !== socket.id);
-      //console.log("users tras desconexion", users);
-      socket.emit("user list", users);
-      socket.broadcast.emit("user list", users);
       socket.leave(roomId);
     });
   });
@@ -62,35 +51,6 @@ const verifyAccessToken = (authtoken) => {
       resolve(payload);
     });
   });
-};
-
-const saveChatMessage = (data, io, roomId, payload) => {
-  const message = {
-    text: data.body.text,
-    from: payload.aud,
-    time: Date.now(),
-    msgType: data.body.type,
-    doc_id: data.body.doc_id || null,
-    mimetype: data.body.mimetype || null,
-  };
-  try {
-    Chat.findByIdAndUpdate(
-      roomId,
-      {
-        $push: {
-          messages: message,
-        },
-      },
-      { new: true },
-      (err, doc) => {
-        if (err) console.log("Error al guardar el mensaje");
-        //console.log(doc);
-      }
-    );
-  } catch (error) {
-    console.log(error);
-  }
-  io.in(roomId).emit(NEW_CHAT_MESSAGE_EVENT, message);
 };
 
 const saveSendLastBid = async (data, io, roomId, payload) => {
@@ -151,7 +111,7 @@ const saveSendLastBid = async (data, io, roomId, payload) => {
     // Calculamos el nuevo tiempo de fin para mandarlo en el evento puja
     puja.endTime = new Date(puja.endTime).getTime() - new Date().getTime();
 
-    io.in(roomId).emit(NEW_BID_EVENT, puja);
+    bidnsp.in(roomId).emit(NEW_BID_EVENT, puja);
   } catch (error) {
     console.log(error);
   }
@@ -191,7 +151,7 @@ const startBid = (subbidCurrrentResult, eachBid, io, socket_id, user_id) => {
     return eachsubbid;
   });
   //console.log('evento ' + STARTING_BID + ' enviado', tempArray)
-  return io.to(socket_id).emit(STARTING_BID, tempArray);
+  return bidnspto(socket_id).emit(STARTING_BID, tempArray);
 };
 
 const setStartTimer = async (io, socket_id, user_id) => {
@@ -235,10 +195,10 @@ const finishBid = (subbidCurrrentResult, eachBid) => {
   });
   //console.log('evento ' + STARTING_BID + ' enviado', tempArray)
 
-  return io.to(socket_id).emit(FINISHING_BID, tempArray);
+  return bidnspto(socket_id).emit(FINISHING_BID, tempArray);
 };
 
-const saveFinishBidData = (eachBid, eachsubbid) => {
+const saveFinishBidData = async (eachBid, eachsubbid) => {
   try {
     const { from, time, amount } = JSON.parse(
       await getAsyncRedis(subbid_id).catch((err) => {
@@ -344,4 +304,12 @@ const getSubbidCurrrentResult = async (eachBid) => {
 
   await Promise.all(subbids);
   return subbids;
+};
+
+const getRedisTimer = async (subbid_id) => {
+  let redisSubbid = JSON.parse(
+    await getAsyncRedis(subbid_id + "_timer").catch((err) => {
+      if (err) console.error(err);
+    })
+  );
 };
