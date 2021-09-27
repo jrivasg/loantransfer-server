@@ -8,6 +8,9 @@ router.get("/getall", autJWT.verifyAccessToken, BidController.getAll);
 router.get("/getactive", autJWT.verifyAccessToken, BidController.getActiveBids);
 router.post("/getsubbid", /* autJWT.verifyAccessToken, */ BidController.getOne);
 router.post("/create", /* autJWT.verifyAccessToken, */ BidController.createBid);
-router.post("/ownbids", /* autJWT.verifyAccessToken, */ BidController.getMybids);
+router.post("/delete", /* autJWT.verifyAccessToken, */ BidController.deleteBid);
+router.post("/edit", /* autJWT.verifyAccessToken, */ BidController.editBid);
+// Lista sellers y ObjectId
+router.get("/getinfo", autJWT.verifyAccessToken, BidController.getInfo);
 
 module.exports = router;

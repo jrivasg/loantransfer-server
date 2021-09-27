@@ -6,35 +6,48 @@ const path = require("path");
 module.exports = {
   savefiles: async (req, res) => {
     const { bid_id, chat_id } = req.body;
-    if (bid_id)
-      req.files.forEach((file) => {
-        console.log("file", file);
-        Bid.findByIdAndUpdate(
-          bid_id,
-          { $push: { documents: file } },
-          { new: true },
-          (err, bid) => {
-            if (err) res.status(500).json(err);
-            const doc = bid.documents[bid.documents.length - 1];
-            res.status(200).json({
-              message: "Archivo/s guardado/s",
-              doc_id: doc._id,
-              mymetype: doc.mimetype,
-              name: doc.originalname,
-            })
-          }
-        );
-      });
 
+    if (bid_id)
+      req.files.forEach(async (file) => {
+        const bidExists = await Bid.findById(bid_id).lean();
+        if (bidExists) {
+          Bid.findByIdAndUpdate(
+            bid_id,
+            {
+              $push: { documents: file }
+            },
+            { new: true },
+            (err, bid) => {
+              if (err) res.status(500).json(err);
+              const doc = bid.documents[bid.documents.length - 1];
+              res.status(200).json("Archivo/s guardado/s");
+            }
+          );
+        } else {
+          new Bid({
+            _id: bid_id,
+            documents: [file]
+          }).save((err, bid) => {
+            if (err) {
+              console.log(err);
+              return res.status(500).json(err);
+            }
+            res.status(200).json("Archivo/s guardado/s");
+          });
+        }
+
+
+      });
     if (chat_id)
       req.files.forEach((file) => {
         Chat.findByIdAndUpdate(
           chat_id,
-          { $push: { documentation: file } },
+          { $push: { documents: file } },
           { new: true },
           (err, chat) => {
             if (err) res.status(500).json(err);
-            const doc = chat.documentation[chat.documentation.length - 1];
+            //console.log(chat)
+            const doc = chat.documents[chat.documents.length - 1];
             res.status(200).json({
               message: "Archivo/s guardado/s",
               doc_id: doc._id,
@@ -53,11 +66,11 @@ module.exports = {
         return res.status(500).json(err);
       });
     //console.log(req.body);
-    bid && res.status(200).json(bid.documentation);
+    bid && res.status(200).json(bid.documents);
   },
   getFile: async (req, res) => {
     const { doc_id, bid_id, chat_id } = req.query;
-    console.log(req.query);
+    //console.log(req.query);
     let doc;
     if (bid_id) {
       const bid = await Bid.findById(bid_id)
@@ -74,7 +87,7 @@ module.exports = {
           console.log(err);
           return res.status(500).json(err);
         });
-      doc = chat.documentation.find(
+      doc = chat.documents.find(
         (doc) => String(doc._id) === String(doc_id)
       );
     }
@@ -101,11 +114,11 @@ module.exports = {
       }
       Bid.findByIdAndUpdate(
         bid_id,
-        { $pull: { documentation: { _id: doc_id } } },
+        { $pull: { document: { _id: doc_id } } },
         { new: true },
         (err, bid) => {
           if (err) return res.status(500).json(err);
-          res.status(200).json(bid.documentation);
+          res.status(200).json(bid.document);
         }
       );
     });

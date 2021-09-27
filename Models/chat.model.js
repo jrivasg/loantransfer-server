@@ -36,7 +36,7 @@ const ChatSchema = new Schema(
         unread: { type: Boolean, default: true },
       },
     ],
-    documentation: [
+    documents: [
       {
         fieldname: {
           type: String,

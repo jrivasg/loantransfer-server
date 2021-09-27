@@ -1,28 +1,29 @@
 require("dotenv").config();
 const express = require("express");
+require("dotenv").config();
 const app = express();
 const http = require("http").createServer(app);
-const io = require("socket.io")(http, {
-  cors: {
-    origin: '*',
-  },
-});
-require("./helpers/socket_io")(io);
 const logger = require("morgan");
 const createError = require("http-errors");
 const cors = require("cors");
 //const cookieParser = require("cookie-parser");
 //require("./helpers/generate_keys"); // Solo una vez para generar las claves para crear los tokens
 require("./helpers/init_mongodb");
+//const { verifyAccessToken } = require("./helpers/jwt_helper");
 require("./helpers/init_redis");
 
-app.use(logger("common"));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(cors());
-//app.use(cookieParser());
+// Configuración Socket.io
+const io = require("socket.io")(http, {
+  cors: {
+    origin: '*',
+  },
+});
+// Importamos los diferentes sockets
+//require("./Controllers/Socket/socket_io")(io);
+require("./Controllers/Socket/Chat.socket")(io);
+require("./Controllers/Socket/Bid.socket")(io);
+require("./Controllers/Socket/Notification.socket")(io);
 
-// Configuración de rutas
 const {
   AuthRoute,
   UserRoute,
@@ -31,13 +32,13 @@ const {
   OTProute,
   UploadRoute,
 } = require("./Routes/index");
+//require("./helpers/generate_keys"); // Solo una vez para generar las claves para crear los tokens
 
-app.use("/auth", AuthRoute);
-app.use("/user", UserRoute);
-app.use("/chat", ChatRoute);
-app.use("/bid", BidRoute);
-app.use("/otp", OTProute);
-app.use("/upload", UploadRoute);
+app.use(logger("common"));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(cors());
+//app.use(cookieParser());
 
 app.get(
   "/",
@@ -69,8 +70,6 @@ http.listen(PORT, () => {
 });
 
 module.exports = io;
-
-
 
 /* app.use((req, res, next) => {
  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE");
