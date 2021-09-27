@@ -137,9 +137,27 @@ module.exports = {
         if (err) {
           console.log(err);
           return res.status(500).json(err);
-        }        
-        res.status(200).json('Subasta borrada');
+        }
+        res.status(200).json("Subasta borrada");
       });
+    } catch (error) {
+      console.log(error);
+    }
+  },
+  editBid: async (req, res, next) => {
+    try {
+      Bid.findByIdAndUpdate(
+        req.body.bid_id,
+        req.body.bid,
+        { new: true },
+        (err, bid) => {
+          if (err) {
+            console.log(err);
+            return res.status(500).json(err);
+          }
+          res.status(200).json("Subasta borrada");
+        }
+      );
     } catch (error) {
       console.log(error);
     }
