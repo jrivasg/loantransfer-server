@@ -48,6 +48,13 @@ app.get(
   }
 );
 
+app.use("/auth", AuthRoute);
+app.use("/user", UserRoute);
+app.use("/chat", ChatRoute);
+app.use("/bid", BidRoute);
+app.use("/otp", OTProute);
+app.use("/upload", UploadRoute);
+
 // Configuración errores
 app.use(async (req, res, next) => {
   next(createError.NotFound());

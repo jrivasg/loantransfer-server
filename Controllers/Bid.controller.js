@@ -9,6 +9,7 @@ module.exports = {
     try {
       //console.log(req.payload);
       const bid = await Bid.find().lean();
+      bid.sort(compare);
       res.status(200).json(bid);
     } catch (error) {
       next(error);
@@ -20,6 +21,7 @@ module.exports = {
       const { user_id } = req.body;
       //console.log(req.payload);
       const bid = await Bid.find({ final_buyer: user_id }).lean();
+      bid.sort(compare);
       res.status(200).json(bid);
     } catch (error) {
       next(error);
@@ -46,7 +48,7 @@ module.exports = {
     }
   },
 
-  getOne: async (req, res, next) => {
+  getOneSubbid: async (req, res, next) => {
     const { bid_id, subbid_id } = req.body;
     try {
       const bid = await Bid.findById(bid_id).lean();
@@ -58,6 +60,17 @@ module.exports = {
       subbid.starting_time = bid.starting_time;
       subbid.end_time = bid.end_time;
       res.status(200).json(subbid);
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  getOneBid: async (req, res, next) => {
+    const { bid_id } = req.body;
+    try {
+      const bid = await Bid.findById(bid_id).lean();
+
+      res.status(200).json(bid);
     } catch (error) {
       next(error);
     }
@@ -133,7 +146,7 @@ module.exports = {
   },
   deleteBid: async (req, res, next) => {
     try {
-      Bid.findOneAndDelete(req.body.bid_id, (err, bid) => {
+      Bid.findByIdAndDelete(req.body.bid_id, (err, bid) => {
         if (err) {
           console.log(err);
           return res.status(500).json(err);
@@ -144,31 +157,13 @@ module.exports = {
       console.log(error);
     }
   },
-  editBid: async (req, res, next) => {
-    try {
-      Bid.findByIdAndUpdate(
-        req.body.bid_id,
-        req.body.bid,
-        { new: true },
-        (err, bid) => {
-          if (err) {
-            console.log(err);
-            return res.status(500).json(err);
-          }
-          res.status(200).json("Subasta borrada");
-        }
-      );
-    } catch (error) {
-      console.log(error);
-    }
-  },
 };
 
 const initilizeRedisBidObject = (bid) => {
-  bid.bids.forEach(({ minimunAmount, _id }) => {
+  bid.bids.forEach(({ minimunAmount, _id, seller }) => {
     const puja = [
       {
-        from: null,
+        from: bid.seller,
         time: new Date(),
         bid_id: bid._id,
         amount: minimunAmount,

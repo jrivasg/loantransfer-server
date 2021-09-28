@@ -54,6 +54,7 @@ const BidSchema = new Schema(
             time: { type: Date },
           },
         ],
+        increment: { type: Number },
       },
     ],
     starting_time: { type: Date },
