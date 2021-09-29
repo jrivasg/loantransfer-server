@@ -51,7 +51,7 @@ module.exports = {
   getOneSubbid: async (req, res, next) => {
     const { bid_id, subbid_id } = req.body;
     try {
-      const bid = await Bid.findById(bid_id).lean();
+      const bid = await Bid.findById(bid_id)/* .populate({ path: 'viewers', select: 'displayName' }) */.lean();
       const subbid = bid.bids.find(
         (sub) => String(sub._id) === String(subbid_id)
       );
@@ -59,6 +59,7 @@ module.exports = {
       subbid.documents = bid.documents;
       subbid.starting_time = bid.starting_time;
       subbid.end_time = bid.end_time;
+      subbid.viewers = bid.viewers;
       res.status(200).json(subbid);
     } catch (error) {
       next(error);
@@ -163,7 +164,7 @@ const initilizeRedisBidObject = (bid) => {
   bid.bids.forEach(({ minimunAmount, _id, seller }) => {
     const puja = [
       {
-        from: bid.seller,
+        from: null,
         time: new Date(),
         bid_id: bid._id,
         amount: minimunAmount,
@@ -183,13 +184,13 @@ const initilizeRedisBidObject = (bid) => {
 };
 
 const compare = (a, b) => {
-  const firstElement = new Date(a.end_time).getTime();
-  const secondElement = new Date(b.end_time).getTime();
+  const firstElement = new Date(a.starting_time).getTime();
+  const secondElement = new Date(b.starting_time).getTime();
 
-  if (firstElement < secondElement) {
+  if (firstElement > secondElement) {
     return -1;
   }
-  if (firstElement > secondElement) {
+  if (firstElement < secondElement) {
     return 1;
   }
   return 0;
