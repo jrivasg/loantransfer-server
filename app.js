@@ -12,6 +12,9 @@ require("./helpers/init_mongodb");
 //const { verifyAccessToken } = require("./helpers/jwt_helper");
 require("./helpers/init_redis");
 
+// Prueba programar email
+require("./helpers/sendEmail").scheduleEmail();
+
 // Configuración Socket.io
 const io = require("socket.io")(http, {
   cors: {
