@@ -86,13 +86,17 @@ const saveSendLastBid = async (data, io, roomId, payload) => {
       newEndDateTime = new Date(
         new Date(lastBidRedis.endTime).getTime() + 1 * 60 * 1000
       );
-      Bid.findByIdAndUpdate(bid_id, {
-        end_time: newEndDateTime,
-      }, { new: true },
+      Bid.findByIdAndUpdate(
+        bid_id,
+        {
+          end_time: newEndDateTime,
+        },
+        { new: true },
         (err, bid) => {
           if (err) res.status(500).json(err);
-          console.log('nuevo end_time', bid.end_time);
-        });
+          console.log("nuevo end_time", bid.end_time);
+        }
+      );
     }
 
     // Creamos una nueva puja con los datos del pujador y de las cantidades y se añade al log
@@ -144,17 +148,21 @@ const startBid = (subbidCurrrentResult, eachBid, io, socket_id, user_id) => {
   const startTime = new Date(eachBid.starting_time).getTime();
   const endTime = new Date(eachBid.end_time).getTime();
   const active = startTime < now && now < endTime;
-  // Se añade al usuario a la lista de usuarios que estan presentes durante la subasta si ésta está activa. 
+  // Se añade al usuario a la lista de usuarios que estan presentes durante la subasta si ésta está activa.
   if (active) {
-    Bid.findByIdAndUpdate(eachBid._id, {
-      $addToSet: {
-        viewers: mongoose.Types.ObjectId(user_id),
+    Bid.findByIdAndUpdate(
+      eachBid._id,
+      {
+        $addToSet: {
+          viewers: mongoose.Types.ObjectId(user_id),
+        },
       },
-    }, { new: true },
+      { new: true },
       (err, bid) => {
         if (err) res.status(500).json(err);
         //console.log('viwers modificado', bid.viewers);
-      });
+      }
+    );
     // Se itera sobre cada lote y se comprueba se modifica la propiedad active según su fecha de inicio y fin respecto del momento actual
     const tempArray = subbidCurrrentResult.map((eachsubbid) => {
       //console.log(eachsubbid.subbid_id, startTime < now && now < endTime)
@@ -162,7 +170,7 @@ const startBid = (subbidCurrrentResult, eachBid, io, socket_id, user_id) => {
       return eachsubbid;
     });
     //console.log('evento ' + STARTING_BID + ' enviado', tempArray)
-    return bidnsp.to(socket_id).emit(STARTING_BID, tempArray)
+    return bidnsp.to(socket_id).emit(STARTING_BID, tempArray);
   }
 };
 
@@ -195,7 +203,14 @@ const setStartTimer = async (io, socket_id, user_id) => {
   }
 };
 
-const finishBid = (subbidCurrrentResult, eachBid, io, socket_id, user_id, finishTimerId) => {
+const finishBid = (
+  subbidCurrrentResult,
+  eachBid,
+  io,
+  socket_id,
+  user_id,
+  finishTimerId
+) => {
   //sendWinnerEmail(subbidCurrrentResult, eachBid, user_id);
 
   const tempArray = subbidCurrrentResult.map(async (eachsubbid) => {
@@ -206,11 +221,13 @@ const finishBid = (subbidCurrrentResult, eachBid, io, socket_id, user_id, finish
       })
     );
     const bid_endtime = new Date(eachBid.end_time).getTime();
-    const subbid_endtime = new Date(redisSubbid[redisSubbid.length - 1].endTime).getTime();
+    const subbid_endtime = new Date(
+      redisSubbid[redisSubbid.length - 1].endTime
+    ).getTime();
     // Las fechas no coinciden se vuelve a progrmar el timer
     if (bid_endtime !== subbid_endtime) {
-      clearTimeout(finishTimerId)
-      return setFinishTimer(io, socket_id, user_id)
+      clearTimeout(finishTimerId);
+      return setFinishTimer(io, socket_id, user_id);
     }
 
     // Las fechas coinciden, se finalizan las subastas
@@ -234,12 +251,21 @@ const saveFinishBidData = async (eachBid, eachsubbid) => {
       })
     );
 
-    eachBid.bids[0].data.length === 0 && redisLog &&
-      Bid.findByIdAndUpdate(
-        eachBid._id,
+    const lastBid = redisLog[redisLog.length - 1];
+    eachBid.bids[0].data.length === 0 &&
+      redisLog &&
+      Bid.findOneAndUpdate(
+        {
+          _id: eachBid._id,
+          finish: false,
+        },
         {
           finish: true,
-          $set: { "bids.$[el].data": redisLog },
+          $set: {
+            "bids.$[el].data": redisLog,
+            "bids.$[el].buyer": lastBid.from,
+            "bids.$[el].finalAmount": lastsBid.amount,
+          },
         },
         {
           arrayFilters: [{ "el._id": eachsubbid.subbid_id }],
@@ -259,7 +285,7 @@ const saveFinishBidData = async (eachBid, eachsubbid) => {
 const setFinishTimer = async (io, socket_id, user_id) => {
   // Obtenemos las subastas activas en las dos horas siguientes y previas al momento actual
   const nextHourBids = await getNextHourBids();
-  console.log('Nuevo fisnishTimer programado')
+  console.log("Nuevo fisnishTimer programado");
   if (nextHourBids.length > 0) {
     nextHourBids.forEach(async (eachBid) => {
       // Si queda tiempo para el fin de la puja, se pone un temporizador y al final del mismo se envia la info sobre el fin de la puja
@@ -270,7 +296,14 @@ const setFinishTimer = async (io, socket_id, user_id) => {
         //console.log('Timeout programado para dentro de ' + interval / 1000 / 60 + ' min')
         const finishTimerId = setTimeout(async () => {
           const subbidCurrrentResult = await getSubbidCurrrentResult(eachBid);
-          finishBid(subbidCurrrentResult, eachBid, io, socket_id, user_id, finishTimerId);
+          finishBid(
+            subbidCurrrentResult,
+            eachBid,
+            io,
+            socket_id,
+            user_id,
+            finishTimerId
+          );
         }, interval);
       } else {
         // Se obtienen los lotes y se busca en redis la info de la ultima puja.
@@ -348,14 +381,16 @@ const getRedisTimer = async (subbid_id) => {
 
 const sendWinnerEmail = (subbidCurrrentResult, eachBid, user_id) => {
   subbidCurrrentResult.map((subbid) => {
-    console.log('sendWinnerEmail', subbid)
+    console.log("sendWinnerEmail", subbid);
 
     const lastBid = subbid[subbid.length - 1];
     if (lastBid.from === user_id) {
-      const tempSubbid = Bid.findOne({ 'bids': { $elemMatch: { '_id': 'subbid.subbid_id' } } });
-      console.log(tempSubbid)
+      const tempSubbid = Bid.findOne({
+        bids: { $elemMatch: { _id: "subbid.subbid_id" } },
+      });
+      console.log(tempSubbid);
       return lastBid;
     }
-  })
+  });
   //sendEmail();
-}
+};
