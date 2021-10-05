@@ -1,5 +1,4 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html>
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -54,6 +53,9 @@
         width: 100% !important;
         margin: 0 !important;
         height: 100%;
+      }
+
+      .main-table {
         color: #676767;
       }
 
@@ -328,6 +330,7 @@
 
   <body bgcolor="#f7f7f7">
     <table
+      id="main-table"
       align="center"
       cellpadding="0"
       cellspacing="0"
@@ -378,42 +381,13 @@
                       class="w320"
                     >
                       <tr>
-                        <td
-                          class="pull-left mobile-header-padding-left"
-                          style="vertical-align: middle"
-                        >
+                        <td style="vertical-align: middle; text-align: left; padding-left: 60px !important;">
                           <a href=""
                             ><img
                               width="137"
                               height="47"
-                              src="http://s3.amazonaws.com/swu-filepicker/0zxBZVuORSxdc9ZCqotL_logo_03.gif"
+                              src="./logo NPL Broker.png"
                               alt="logo"
-                          /></a>
-                        </td>
-                        <td
-                          class="pull-right mobile-header-padding-right"
-                          style="color: #4d4d4d"
-                        >
-                          <a href=""
-                            ><img
-                              width="44"
-                              height="47"
-                              src="http://s3.amazonaws.com/swu-filepicker/k8D8A7SLRuetZspHxsJk_social_08.gif"
-                              alt="twitter"
-                          /></a>
-                          <a href=""
-                            ><img
-                              width="38"
-                              height="47"
-                              src="http://s3.amazonaws.com/swu-filepicker/LMPMj7JSRoCWypAvzaN3_social_09.gif"
-                              alt="facebook"
-                          /></a>
-                          <a href=""
-                            ><img
-                              width="40"
-                              height="47"
-                              src="http://s3.amazonaws.com/swu-filepicker/hR33ye5FQXuDDarXCGIW_social_10.gif"
-                              alt="rss"
                           /></a>
                         </td>
                       </tr>
@@ -459,30 +433,31 @@
                       <td class="mini-block">
                         <table cellpadding="0" cellspacing="0" width="100%">
                           <tr>
-                            <td >
+                            <td>
                               <table
                                 cellspacing="0"
                                 cellpadding="0"
                                 width="100%"
                               >
-                                
-                                  <tr >
-                                    <td style="text-align: left !important;">Lotes a subasta:</td> 
-                                    <hr />
-                                  </tr>
-                                  <tr class="info-lote">
-                                    {Nombre de lote}:  <span style="text-align: end;"> {precio}</span>    
-                                    <hr />
-                                  </tr>
-                                  <tr class="info-lote">
-                                    {Nombre de lote}: <span style="text-align: end;"> {precio}</span>
-                                    <hr />
-                                  </tr>
-                                  <tr style="text-align: left !important;">
-                                    {Nombre de lote}: <span style="text-align: end;"> {precio}</span>
-                                    <hr />
-                                  </tr>
-                               
+                                <tr style="text-align: left !important">
+                                  Lotes a subasta:
+                                </tr>
+                                <hr />
+                                <tr class="info-lote">
+                                  {Nombre de lote}:
+                                  <span style="text-align: end"> {precio}</span>
+                                  <hr />
+                                </tr>
+                                <tr class="info-lote">
+                                  {Nombre de lote}:
+                                  <span style="text-align: end"> {precio}</span>
+                                  <hr />
+                                </tr>
+                                <tr style="text-align: left !important">
+                                  {Nombre de lote}:
+                                  <span style="text-align: end"> {precio}</span>
+                                  <hr />
+                                </tr>
                               </table>
                             </td>
                           </tr>

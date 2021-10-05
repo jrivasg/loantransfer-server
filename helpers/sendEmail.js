@@ -1,5 +1,7 @@
 const nodemailer = require("nodemailer");
 const schedule = require("node-schedule");
+const Bid = require("../Models/bid.model");
+const { newBidEmailTemplate } = require("../Templates/new_bid_template");
 
 module.exports = {
   send: async (email, email_subject, email_message) => {
@@ -18,7 +20,7 @@ module.exports = {
       from: `"J.Rivas"<${process.env.EMAIL_ADDRESS}>`,
       to: `${email}`,
       subject: email_subject,
-      text: email_message,
+      html: email_message,
     };
 
     const verification = await transporter.verify();
@@ -35,12 +37,14 @@ module.exports = {
   },
 
   scheduleEmail: async (email, email_subject, email_message) => {
-    const date = new Date(2021, 09, 04, 17, 13, 0);
-      schedule.scheduleJob(date, function () {
+    const date = new Date(2021, 09, 05, 18, 23, 0);
+    const tempBid = await Bid.findById("6155e59ec25a6800513d0f46").lean();
+    //console.log("tempBid", tempBid);
+    schedule.scheduleJob(date, function () {
       module.exports.send(
-        ["jrivasgonzalez@gmail.com", "josea.rivas@juntadeandalucia.es"],
-        "email programado",
-        "Funciona la programación de emails"
+        ["jrivasgonzalez@gmail.com"],
+        "Nueva Cartera Programada",
+        newBidEmailTemplate(tempBid)
       );
       console.log("Mensaje programado enviado");
     });
