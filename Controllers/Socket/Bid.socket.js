@@ -224,7 +224,7 @@ const finishBid = (
     const subbid_endtime = new Date(
       redisSubbid[redisSubbid.length - 1].endTime
     ).getTime();
-    // Las fechas no coinciden se vuelve a progrmar el timer
+    // Las fechas no coinciden se vuelve a programar el timer
     if (bid_endtime !== subbid_endtime) {
       clearTimeout(finishTimerId);
       return setFinishTimer(io, socket_id, user_id);

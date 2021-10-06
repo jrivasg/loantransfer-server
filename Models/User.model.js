@@ -12,7 +12,6 @@ const UserSchema = new Schema(
     },
     password: {
       type: String,
-      required: true,
     },
     displayName: {
       type: String,
@@ -42,6 +41,11 @@ const UserSchema = new Schema(
     lastRefreshAt: {
       type: Date,
     },
+    job: { type: String },
+    telephone: { type: String },
+    company: { type: String },
+    cif: { type: String },
+    address: { type: String },
   },
   {
     timestamps: true,
