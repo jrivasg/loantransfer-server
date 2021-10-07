@@ -9,6 +9,7 @@ const sendEmail = require("../../helpers/sendEmail");
 const NEW_BID_EVENT = "newBidEvent";
 const STARTING_BID = "startingBid";
 const FINISHING_BID = "finishingBid";
+const FINISH_ALERT_BID = "finishAlertBid";
 let users = [];
 
 let bidnsp = null;
@@ -291,11 +292,12 @@ const setFinishTimer = async (io, socket_id, user_id) => {
       // Si queda tiempo para el fin de la puja, se pone un temporizador y al final del mismo se envia la info sobre el fin de la puja
       // Si ya ha finalizado, se busca y envia directamente la info.
       const interval = new Date(eachBid.end_time).getTime() - Date.now();
+      const alertInterval = new Date(eachBid.end_time).getTime() - Date.now() - (3 * 60 * 1000);
       //console.log('interval', interval / 1000 / 60)
       if (interval > 0) {
         //console.log('Timeout programado para dentro de ' + interval / 1000 / 60 + ' min')
-        const finishTimerId = setTimeout(async () => {
-          const subbidCurrrentResult = await getSubbidCurrrentResult(eachBid);
+        const subbidCurrrentResult = await getSubbidCurrrentResult(eachBid);
+        const finishTimerId = setTimeout(() => {
           finishBid(
             subbidCurrrentResult,
             eachBid,
@@ -305,16 +307,35 @@ const setFinishTimer = async (io, socket_id, user_id) => {
             finishTimerId
           );
         }, interval);
+        // Timer para avisar subasta terminando        
+        setTimeout(() => {
+          finishAlert(subbidCurrrentResult, eachBid, socket_id);
+        }, alertInterval);
+
       } else {
         // Se obtienen los lotes y se busca en redis la info de la ultima puja.
         const subbidCurrrentResult = await getSubbidCurrrentResult(eachBid);
         // Activamos cada lote para que empieze
         //console.log('puja ya comenzada')
         finishBid(subbidCurrrentResult, eachBid, io, socket_id, user_id);
+        // Timer para avisar subasta terminando        
+        setTimeout(() => {
+          finishAlert(subbidCurrrentResult, eachBid, socket_id);
+        }, alertInterval);
       }
     });
   }
 };
+
+const finishAlert = (subbidCurrrentResult, eachBid, socket_id) => {
+  const tempArray = subbidCurrrentResult.map(async (eachsubbid) => {
+    return {
+      bid_id: eachBid._id,
+      subbid_id: eachsubbid._id,
+    }
+  });
+  bidnsp.to(socket_id).emit(FINISH_ALERT_BID, tempArray);
+}
 
 // Se itera sobre los diferentes lotes y se obtiene la info de las pujas de redis
 const getSubbidCurrrentResult = async (eachBid) => {
@@ -369,14 +390,6 @@ const getSubbidCurrrentResult = async (eachBid) => {
 
   await Promise.all(subbids);
   return subbids;
-};
-
-const getRedisTimer = async (subbid_id) => {
-  let redisSubbid = JSON.parse(
-    await getAsyncRedis(subbid_id + "_timer").catch((err) => {
-      if (err) console.error(err);
-    })
-  );
 };
 
 const sendWinnerEmail = (subbidCurrrentResult, eachBid, user_id) => {
