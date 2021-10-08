@@ -22,7 +22,6 @@ const io = require("socket.io")(http, {
   },
 });
 // Importamos los diferentes sockets
-//require("./Controllers/Socket/socket_io")(io);
 require("./Controllers/Socket/Chat.socket")(io);
 require("./Controllers/Socket/Bid.socket")(io);
 require("./Controllers/Socket/Notification.socket")(io);
@@ -41,6 +40,7 @@ app.use(logger("common"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors());
+app.use(express.static(__dirname + "/public"));
 //app.use(cookieParser());
 
 app.get(

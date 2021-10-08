@@ -57,7 +57,7 @@ const verifyAccessToken = (authtoken) => {
 };
 
 const saveSendLastBid = async (data, io, roomId, payload) => {
-  const { bid_id, amount, subbid_id } = data.body;
+  const { bid_id, amount, subbid_id, nextAmount } = data.body;
   try {
     // Obtenemos la subasta y el lote, asi como su log de pujas en redis.
     const bid = await Bid.findById(bid_id).lean();
@@ -105,7 +105,7 @@ const saveSendLastBid = async (data, io, roomId, payload) => {
       from: payload.aud,
       time: new Date(),
       bid_id,
-      amount: lastBidRedis.amount + subbid.increment,
+      amount: lastBidRedis.amount + subbid.increment, // nextAmount
       subbid_id,
       active: true,
       endTime: newEndDateTime,
@@ -308,9 +308,9 @@ const setFinishTimer = async (io, socket_id, user_id) => {
           );
         }, interval);
         // Timer para avisar subasta terminando        
-        setTimeout(() => {
+        /* setTimeout(() => {
           finishAlert(subbidCurrrentResult, eachBid, socket_id);
-        }, alertInterval);
+        }, alertInterval); */
 
       } else {
         // Se obtienen los lotes y se busca en redis la info de la ultima puja.
@@ -319,9 +319,9 @@ const setFinishTimer = async (io, socket_id, user_id) => {
         //console.log('puja ya comenzada')
         finishBid(subbidCurrrentResult, eachBid, io, socket_id, user_id);
         // Timer para avisar subasta terminando        
-        setTimeout(() => {
+        /* setTimeout(() => {
           finishAlert(subbidCurrrentResult, eachBid, socket_id);
-        }, alertInterval);
+        }, alertInterval); */
       }
     });
   }

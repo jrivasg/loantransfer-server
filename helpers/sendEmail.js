@@ -36,21 +36,131 @@ module.exports = {
     });
   },
 
-  scheduleEmail: async (email, email_subject, email_message) => {
-    const date = new Date(2021, 09, 06, 20, 45, 0);
-    const tempBid = await Bid.findById("6155e59ec25a6800513d0f46").lean();
-    //console.log("tempBid", tempBid);
-    schedule.scheduleJob(date, function () {
+  scheduleEmail: async (bid, company) => {
+    const tempdate = new Date();
+    const dateSchedule = new Date(
+      tempdate.getFullYear(),
+      tempdate.getMonth(),
+      tempdate.getDate(),
+      tempdate.getHours(),
+      tempdate.getMinutes(),
+      tempdate.getSeconds() + 1
+    );
+    const tempTime = new Date(tempBid.starting_time);
+    tempTime.setHours(tempTime.getHours() + 2);
+    console.log("tempTime", tempTime.toISOString());
+
+    schedule.scheduleJob(dateSchedule, function () {
       module.exports.send(
         ["jrivasgonzalez@gmail.com"],
         "Nueva Cartera Programada",
         getHtmltoSend("/bid/newBid_template.hbs", {
-          id: tempBid._id,
+          bid: tempBid,
+          id: tempBid._id.slice(-6),
+          company: "NPLBrokers",
           bids: tempBid.bids,
+          start: tempTime.toLocaleString(),
         })
       );
 
       console.log("Mensaje programado enviado");
     });
   },
+};
+
+const tempBid = {
+  _id: "615f226ead62c702523ba9da",
+  active: false,
+  finish: true,
+  viewers: [
+    { $oid: "615ddb2afbff9c013d7ced31" },
+    { $oid: "615ddc5bf2082c014c47d3e2" },
+  ],
+  title: "test",
+  seller: { $oid: "615ddc5bf2082c014c47d3e2" },
+  bids: [
+    {
+      _id: { $oid: "615f229ead62c702523ba9dc" },
+      reference: "Lote 1",
+      minimunAmount: 6,
+      increment: 6,
+      totalDebt: 6,
+      totalDebtAvg: 6,
+      totalDebtMed: 6,
+      mainDebt: 40000,
+      mainDebtAvg: 6,
+      mainDebtMed: 6,
+      accountsNumber: 6,
+      dv: 6,
+      icons: [{ icon: "BankOutlined", title: "No judicializada" }],
+      data: [
+        {
+          from: null,
+          time: { $date: "2021-10-07T16:38:54.068Z" },
+          amount: 6,
+        },
+        {
+          from: { $oid: "615ddb2afbff9c013d7ced31" },
+          time: { $date: "2021-10-07T16:41:52.885Z" },
+          amount: 12,
+        },
+        {
+          from: { $oid: "615ddc5bf2082c014c47d3e2" },
+          time: { $date: "2021-10-07T16:43:15.136Z" },
+          amount: 18,
+        },
+        {
+          from: { $oid: "615ddb2afbff9c013d7ced31" },
+          time: { $date: "2021-10-07T16:43:30.602Z" },
+          amount: 24,
+        },
+      ],
+      buyer: { $oid: "615ddb2afbff9c013d7ced31" },
+      finalAmount: 15000,
+    },
+    {
+      _id: { $oid: "615f229ead62c702523ba9dc" },
+      reference: "Lote 2",
+      minimunAmount: 6,
+      increment: 6,
+      totalDebt: 6,
+      totalDebtAvg: 6,
+      totalDebtMed: 6,
+      mainDebt: 50000,
+      mainDebtAvg: 6,
+      mainDebtMed: 6,
+      accountsNumber: 6,
+      dv: 6,
+      icons: [{ icon: "BankOutlined", title: "No judicializada" }],
+      data: [
+        {
+          from: null,
+          time: { $date: "2021-10-07T16:38:54.068Z" },
+          amount: 6,
+        },
+        {
+          from: { $oid: "615ddb2afbff9c013d7ced31" },
+          time: { $date: "2021-10-07T16:41:52.885Z" },
+          amount: 12,
+        },
+        {
+          from: { $oid: "615ddc5bf2082c014c47d3e2" },
+          time: { $date: "2021-10-07T16:43:15.136Z" },
+          amount: 18,
+        },
+        {
+          from: { $oid: "615ddb2afbff9c013d7ced31" },
+          time: { $date: "2021-10-07T16:43:30.602Z" },
+          amount: 24,
+        },
+      ],
+      buyer: { $oid: "615ddb2afbff9c013d7ced31" },
+      finalAmount: 25000,
+    },
+  ],
+  starting_time: "2021-10-07T16:40:00.113Z",
+  end_time: { $date: "2021-10-07T16:46:00.927Z" },
+  documents: [],
+  createdAt: { $date: "2021-10-07T16:38:54.010Z" },
+  updatedAt: { $date: "2021-10-07T16:46:01.083Z" },
 };

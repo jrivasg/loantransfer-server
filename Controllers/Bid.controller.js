@@ -3,6 +3,7 @@ const Bid = require("../Models/bid.model");
 const User = require("../Models/User.model");
 var mongoose = require("mongoose");
 const client = require("../helpers/init_redis");
+const sendEmail = require('../helpers/sendEmail');
 
 module.exports = {
   getAll: async (req, res, next) => {
@@ -135,12 +136,14 @@ module.exports = {
         bids,
         starting_time,
         end_time,
-      }).save((err, bid) => {
+      }).save(async (err, bid) => {
         if (err) {
           console.log(err);
           return res.status(500).json(err);
         }
         initilizeRedisBidObject(bid);
+        const company = await User.findById(seller).select("company");
+        sendEmail.scheduleEmail(bid, company);
         res.status(200).json(bid);
       });
     }
