@@ -13,7 +13,7 @@ require("./helpers/init_mongodb");
 require("./helpers/init_redis");
 
 // Prueba programar email
-require("./helpers/sendEmail").scheduleEmail();
+//require("./helpers/sendEmail").scheduleEmail();
 
 // Configuración Socket.io
 const io = require("socket.io")(http, {
