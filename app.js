@@ -1,8 +1,13 @@
 require("dotenv").config();
 const express = require("express");
 require("dotenv").config();
+const fs = require("fs");
 const app = express();
-const http = require("http").createServer(app);
+const https = require("https").createServer({
+  key: fs.readFileSync('server.pem'),
+  cert: fs.readFileSync('cert-server.pem')
+}, app);
+//const http = require("http").createServer(app);
 const logger = require("morgan");
 const createError = require("http-errors");
 const cors = require("cors");
@@ -16,9 +21,9 @@ require("./helpers/init_redis");
 //require("./helpers/sendEmail").scheduleEmail();
 
 // Configuración Socket.io
-const io = require("socket.io")(http, {
+const io = require("socket.io")(https, {
   cors: {
-    origin: '*',
+    origin: "*",
   },
 });
 // Importamos los diferentes sockets
@@ -75,7 +80,7 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 3000;
 
-http.listen(PORT, () => {
+https.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
 

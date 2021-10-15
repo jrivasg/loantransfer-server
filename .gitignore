@@ -87,3 +87,5 @@ rest.http
 README.md
 
 uploads/
+cert-server.pem
+server.pem
