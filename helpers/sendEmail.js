@@ -7,17 +7,20 @@ module.exports = {
   send: async (email, email_subject, email_message) => {
     // Create nodemailer transporter
     const transporter = nodemailer.createTransport({
-      host: "smtp.gmail.com",
-      port: 465,
-      secure: true,
+      host: "smtp.office365.com",
+      port: "587",
+      secureConnection: false,
       auth: {
         user: `${process.env.EMAIL_ADDRESS}`,
         pass: `${process.env.EMAIL_PASSWORD}`,
       },
+      tls: { ciphers: "SSLv3" },
+      logger: true,
+      //debug:true
     });
 
     const mailOptions = {
-      from: `"J.Rivas"<${process.env.EMAIL_ADDRESS}>`,
+      from: `NPLBroker<${process.env.EMAIL_ADDRESS}>`,
       to: `${email}`,
       subject: email_subject,
       html: email_message,
@@ -52,7 +55,7 @@ module.exports = {
 
     schedule.scheduleJob(dateSchedule, function () {
       module.exports.send(
-        ["jrivasgonzalez@gmail.com"],
+        ["jrivasgonzalez@gmail.com", "alvaroaguilar@agabogadosyanalistas.com"],
         "Nueva Cartera Programada",
         getHtmltoSend("/bid/newBid_template.hbs", {
           bid: tempBid,
