@@ -11,6 +11,8 @@
   "license": "ISC",
   "dependencies": {
     "@hapi/joi": "^17.1.1",
+    "@socket.io/pm2": "^5.1.0",
+    "@socket.io/redis-adapter": "^7.0.0",
     "bcrypt": "^5.0.1",
     "bcryptjs": "^2.4.3",
     "bree": "^6.3.1",
@@ -36,6 +38,6 @@
     "sequelize": "^6.6.5",
     "sequelize-cli": "^6.2.0",
     "socket.io": "^4.1.2",
-    "uuid": "8.3.2"
+    "uuid": "^8.3.2"
   }
 }
