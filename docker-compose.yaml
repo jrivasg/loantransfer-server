@@ -14,7 +14,7 @@ services:
       - ./:/development/servidorSubastas
       - ./uploads:/home/aplicaciones/uploads
     working_dir: /development/servidorSubastas
-    command: sh -c "npm install -g pm2 && pm2-runtime app.js --watch"
+    command: sh -c "npm install && npm install -g pm2 && pm2-runtime app.js --watch"
     #command: sh -c "npm start app.js"
     links:
       - mongodbSubastas
@@ -37,6 +37,7 @@ services:
     command: mongod --logpath=/dev/null --auth # --quiet
   redisSubastas:
     container_name: "redisSubastas"
+    restart: always
     image: "redis:6.2.5"
     volumes:
       - ./redis-data:/home/aplicaciones/databases/redisData/redisSubastas
