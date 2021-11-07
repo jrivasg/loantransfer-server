@@ -55,7 +55,7 @@ module.exports = {
 
     schedule.scheduleJob(dateSchedule, function () {
       module.exports.send(
-        ["jrivasgonzalez@gmail.com", "alvaroaguilar@agabogadosyanalistas.com"],
+        ["jrivasgonzalez@gmail.com"],
         "Nueva Cartera Programada",
         getHtmltoSend("/bid/newBid_template.hbs", {
           bid: tempBid,

@@ -21,7 +21,7 @@ require("./helpers/init_redis");
 // require("./helpers/sendEmail").scheduleEmail();
 
 // Configuración Socket.io
-const io = require("socket.io")(http, {
+const io = require("socket.io")(https, {
   cors: {
     orgin: "*",
   },
@@ -87,7 +87,7 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 3000;
 
-http.listen(PORT, () => {
+https.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
 
