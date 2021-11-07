@@ -4,8 +4,8 @@ require("dotenv").config();
 const fs = require("fs");
 const app = express();
 const https = require("https").createServer({
-  key: fs.readFileSync('server.pem'),
-  cert: fs.readFileSync('cert-server.pem')
+  key: fs.readFileSync('./privkey.pem'),
+  cert: fs.readFileSync('./fullchain.pem')
 }, app);
 //const http = require("http").createServer(app);
 const logger = require("morgan");

@@ -89,3 +89,5 @@ README.md
 uploads/
 cert-server.pem
 server.pem
+fullchain.pem
+privkey.pem
