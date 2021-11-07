@@ -3,11 +3,11 @@ const express = require("express");
 require("dotenv").config();
 const fs = require("fs");
 const app = express();
-/*const https = require("https").createServer({
-  key: fs.readFileSync('server.pem'),
-  cert: fs.readFileSync('cert-server.pem')
-}, app);*/
-const http = require("http").createServer(app);
+const https = require("https").createServer({
+  key: fs.readFileSync('./privkey.pem'),
+  cert: fs.readFileSync('./fullchain.pem')
+}, app);
+//const http = require("http").createServer(app);
 const logger = require("morgan");
 const createError = require("http-errors");
 const cors = require("cors");
