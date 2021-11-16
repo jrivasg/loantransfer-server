@@ -31,6 +31,7 @@ module.exports = (io) => {
 
     // Listen for new bids
     socket.on(NEW_BID_EVENT, (data) => {
+      console.log(socket.id + " realizó una puja por valor de " + data.body.amount);
       // Se comprueba si la puja es valida y si lo es se guarda en el log
       saveSendLastBid(data, io, roomId, payload);
     });
@@ -58,6 +59,7 @@ const verifyAccessToken = (authtoken) => {
 
 const saveSendLastBid = async (data, io, roomId, payload) => {
   const { bid_id, amount, subbid_id, nextAmount } = data.body;
+
   try {
     // Obtenemos la subasta y el lote, asi como su log de pujas en redis.
     const bid = await Bid.findById(bid_id).lean();
@@ -70,12 +72,13 @@ const saveSendLastBid = async (data, io, roomId, payload) => {
         if (err) console.error(err);
       })
     );
+
     // Obtenemos el la últimas puja
     const lastBidRedis = lastBidRedisArray[lastBidRedisArray.length - 1];
 
     // Si la ultima cantidad guardad no es la mismas q esta observando al pujar el cliente porque otro se haya adelantado, se desecha.
     // También se comprueba si la ultima puja fue propia para no pujar doble
-    if (lastBidRedis.amount !== amount || lastBidRedis.from === payload.aud)
+    if (lastBidRedis.amount === amount || lastBidRedis.from === payload.aud)
       return;
 
     // Le sumamos 1 minutos al tiempo actual de fin si quedan menos de 2 min
@@ -105,7 +108,7 @@ const saveSendLastBid = async (data, io, roomId, payload) => {
       from: payload.aud,
       time: new Date(),
       bid_id,
-      amount: lastBidRedis.amount + subbid.increment, // nextAmount
+      amount: amount, // nextAmount
       subbid_id,
       active: true,
       endTime: newEndDateTime,
@@ -214,6 +217,22 @@ const finishBid = (
 ) => {
   //sendWinnerEmail(subbidCurrrentResult, eachBid, user_id);
 
+  try {
+    Bid.findByIdAndUpdate(eachBid._id,
+      {
+        active: false,
+        finish: true
+      },
+      (err, bid) => {
+        if (err) res.status(500).json(err);
+      }
+    ).catch((err) => {
+      if (err) console.error(err);
+    });
+  } catch (error) {
+    console.log(error);
+  }
+
   const tempArray = subbidCurrrentResult.map(async (eachsubbid) => {
     // Comprobamos que la fecha de finalización es el mismo en el bid que en redis
     let redisSubbid = JSON.parse(
@@ -261,11 +280,10 @@ const saveFinishBidData = async (eachBid, eachsubbid) => {
           finish: false,
         },
         {
-          finish: true,
           $set: {
             "bids.$[el].data": redisLog,
             "bids.$[el].buyer": lastBid.from,
-            "bids.$[el].finalAmount": lastsBid.amount,
+            "bids.$[el].finalAmount": lastBid.amount,
           },
         },
         {
@@ -315,7 +333,7 @@ const setFinishTimer = async (io, socket_id, user_id) => {
       } else {
         // Se obtienen los lotes y se busca en redis la info de la ultima puja.
         const subbidCurrrentResult = await getSubbidCurrrentResult(eachBid);
-        // Activamos cada lote para que empieze
+        // Activamos cada lote para que empiece
         //console.log('puja ya comenzada')
         finishBid(subbidCurrrentResult, eachBid, io, socket_id, user_id);
         // Timer para avisar subasta terminando        

@@ -9,6 +9,7 @@ const {
 } = require("../helpers/jwt_helper");
 const client = require("../helpers/init_redis");
 
+
 module.exports = {
   signup: async (req, res, next) => {
     try {
@@ -45,6 +46,7 @@ module.exports = {
   },
 
   signin: async (req, res, next) => {
+    if (req.payload.Status !== 'Success') res.status(500).send({ message: 'Error al introducir el código' })
     try {
       const result = await authSchema.validateAsync(req.body);
       const user = await User.findOne({ email: result.email }).populate('chat');

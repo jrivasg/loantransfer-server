@@ -3,16 +3,20 @@ const { encode, decode } = require("../helpers/crypt");
 var otpGenerator = require("otp-generator");
 const { send } = require("../helpers/sendEmail");
 const client = require("../helpers/init_redis");
+const User = require("../Models/User.model");
 
 module.exports = {
   sendEmail: async (req, res, next) => {
+    console.log(req.body)
     try {
-      const { email, type, userId } = req.body;
+      const { email, type } = req.body;
       let email_subject, email_message;
       if (!email) return res.status(400).send({ error: "Email no recibido" });
 
       if (!type) return res.status(400).send({ error: "tipo no recibido" });
 
+      const user = await User.findOne({ email: email }, '_id')
+      console.log('userId', user._id)
       // Generate OTP
       const otp = otpGenerator.generate(6, {
         alphabets: false,
@@ -21,13 +25,13 @@ module.exports = {
       });
       const now = new Date();
       const expiration_time = Date.now() + (1000 * 60 * 10);
-
+      console.log(OTP)
       // Create OTP instance in DB
       const otpEl = {
         otp: otp,
         expiration_time: expiration_time,
       };
-      client.SET(userId ? userId : 'userID', JSON.stringify(otpEl), "EX", 10 * 60, (err, reply) => {
+      client.SET(user._id ? String(user._id) : 'userID', JSON.stringify(otpEl), "EX", 10 * 60, (err, reply) => {
         if (err) {
           console.log(err.message);
           //createError.InternalServerError();
@@ -54,29 +58,30 @@ module.exports = {
           const {
             message,
             subject_mail,
-          } = require("../Templates/email/email_verification");
+          } = require("../Templates/auth/email_verification");
           email_message = message(otp);
           email_subject = subject_mail;
         } else if (type == "FORGET") {
           const {
             message,
             subject_mail,
-          } = require("../Templates/email/email_forget");
+          } = require("../Templates/auth/email_forget");
           email_message = message(otp);
           email_subject = subject_mail;
         } else if (type == "2FA") {
           const {
             message,
             subject_mail,
-          } = require("../Templates/email/email_2FA");
+          } = require("../Templates/auth/email_2FA");
           email_message = message(otp);
           email_subject = subject_mail;
         } else {
           return res.status(400).send({ error: "Tipo incorrecto recibido" });
         }
       }
-
-      send(email, email_subject, email_message);
+      console.log('otp', otp);
+      //send(email, email_subject, email_message);
+      res.status(200).send({ message: 'Email envido', verification_key: encoded });
     } catch (err) {
       return res.status(400).send({ error: err.message });
     }
@@ -84,9 +89,10 @@ module.exports = {
   verify: async (req, res, next) => {
     try {
       var currentdate = new Date();
-      const { verification_key, otp, check, userId } = req.body;
+      const { verification_key, otp, email } = req.body;
       //console.log(req.body);
-
+      const user = await User.findOne({ email: email }, '_id')
+      console.log(user)
       if (!verification_key) {
         const response = {
           Status: "Failure",
@@ -98,7 +104,7 @@ module.exports = {
         const response = { Status: "Failure", Details: "OTP not Provided" };
         return res.status(400).send(response);
       }
-      if (!check) {
+      if (!email) {
         const response = { Status: "Failure", Details: "Check not Provided" };
         return res.status(400).send(response);
       }
@@ -120,7 +126,7 @@ module.exports = {
       const check_obj = obj.check;
 
       // Check if the OTP was meant for the same email or phone number for which it is being verified
-      if (check_obj != check) {
+      if (check_obj != email) {
         const response = {
           Status: "Failure",
           Details: "OTP was not sent to this particular email or phone number",
@@ -129,14 +135,14 @@ module.exports = {
       }
 
       // TODO llamar a REDIS
-      client.GET(userId, (err, result) => {
+      client.GET(String(user._id), (err, result) => {
         if (err) {
           console.log(err.message);
           //reject(createError.InternalServerError());
           return;
         }
         const otp_instance = JSON.parse(result);
-        console.log(otp_instance);
+        console.log('otp_instance', otp_instance);
         //Check if OTP is available in the DB
         if (otp_instance != null) {
           //Check if OTP is already used or not
@@ -152,9 +158,11 @@ module.exports = {
                 const response = {
                   Status: "Success",
                   Details: "Código de verificación correcto",
-                  Check: check,
+                  email: email,
                 };
-                return res.status(200).send(response);
+                req.payload = response
+                console.log(response)
+                next()
               } else {
                 const response = {
                   Status: "Failure",
