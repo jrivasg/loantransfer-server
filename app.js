@@ -3,11 +3,11 @@ const express = require("express");
 require("dotenv").config();
 const fs = require("fs");
 const app = express();
-/* const https = require("https").createServer({
+const https = require("https").createServer({
   key: fs.readFileSync('./privkey.pem'),
   cert: fs.readFileSync('./fullchain.pem')
-}, app); */
-const http = require("http").createServer(app);
+}, app);
+//const http = require("http").createServer(app);
 const logger = require("morgan");
 const createError = require("http-errors");
 const cors = require("cors");
@@ -21,7 +21,7 @@ require("./helpers/init_redis");
 // require("./helpers/sendEmail").scheduleEmail();
 
 // Configuración Socket.io
-const io = require("socket.io")(http, {
+const io = require("socket.io")(https, {
   cors: {
     orgin: "*",
   },
@@ -87,7 +87,7 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 3000;
 
-http.listen(PORT, () => {
+https.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
 

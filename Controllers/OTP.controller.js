@@ -80,7 +80,7 @@ module.exports = {
         }
       }
       console.log('otp', otp);
-      //send(email, email_subject, email_message);
+      send(email, email_subject, email_message);
       res.status(200).send({ message: 'Email envido', verification_key: encoded });
     } catch (err) {
       return res.status(400).send({ error: err.message });
