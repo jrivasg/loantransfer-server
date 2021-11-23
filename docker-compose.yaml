@@ -30,8 +30,8 @@ services:
       - ./data/db:/home/aplicaciones/databases/mongodbData/mongodbSubastas
     environment:
       MONGO_INITDB_DATABASE: "subastas_loantransfer"
-      MONGO_INITDB_ROOT_USERNAME: user
-      MONGO_INITDB_ROOT_PASSWORD: pass
+      #MONGO_INITDB_ROOT_USERNAME: user
+      #MONGO_INITDB_ROOT_PASSWORD: pass
     ports:
       - 3400:27017
     command: mongod --logpath=/dev/null --auth # --quiet
