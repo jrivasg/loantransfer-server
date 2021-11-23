@@ -1,46 +1,46 @@
 version: "3.3"
 services:
-  servidorSubastas:
+  servidorloantransfer:
     image: node:lts-alpine
     stdin_open: true
     restart: always
     expose:
-      - "3000"
+      - "3001"
     ports:
-      - "3000:3000"
+      - "3001:3000"
     environment:
       - "PORT=3000"
     volumes:
-      - ./:/development/servidorSubastas
-      - ./uploads:/home/aplicaciones/uploads
-    working_dir: /development/servidorSubastas
+      - ./:/development/servidorloantransfer
+      - ./uploads:/home/aplicaciones/uploadsloantransfer
+    working_dir: /development/servidorloantransfer
     command: sh -c "npm install && npm install -g pm2 && pm2-runtime app.js --watch"
     #command: sh -c "npm start app.js"
     links:
-      - mongodbSubastas
-      - redisSubastas
+      - mongodbloantransfer
+      - redisloantransfer
     depends_on:
-      - mongodbSubastas
-      - redisSubastas
-  mongodbSubastas:
+      - mongodbloantransfer
+      - redisloantransfer
+  mongodbloantransfer:
     image: mongo:4.4
-    container_name: "mongodbSubastas"
+    container_name: "mongodbloantransfer"
     restart: always
     volumes:
       - ./data/db:/home/aplicaciones/databases/mongodbData/mongodbSubastas
     environment:
-      MONGO_INITDB_DATABASE: "subastas_db"
-      #MONGO_INITDB_ROOT_USERNAME: user
-      #MONGO_INITDB_ROOT_PASSWORD: pass
+      MONGO_INITDB_DATABASE: "subastas_loantransfer"
+      MONGO_INITDB_ROOT_USERNAME: user
+      MONGO_INITDB_ROOT_PASSWORD: pass
     ports:
-      - 3500:27017
+      - 3400:27017
     command: mongod --logpath=/dev/null --auth # --quiet
-  redisSubastas:
-    container_name: "redisSubastas"
+  redisloantransfer:
+    container_name: "redisloantransfer"
     restart: always
     image: "redis:6.2.5"
     volumes:
-      - ./redis-data:/home/aplicaciones/databases/redisData/redisSubastas
+      - ./redis-data:/home/aplicaciones/databases/redisData/redisloantransfer
       - ./redis.conf:/home/aplicaciones/conf/redis.conf
     ports:
       - "6379:6379"
