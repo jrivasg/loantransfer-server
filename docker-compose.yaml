@@ -43,4 +43,4 @@ services:
       - ./redis-data:/home/aplicaciones/databases/redisData/redisloantransfer
       - ./redis.conf:/home/aplicaciones/conf/redis.conf
     ports:
-      - "6379:6379"
+      - "6380:6379"
