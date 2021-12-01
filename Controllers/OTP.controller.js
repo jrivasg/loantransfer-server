@@ -4,10 +4,12 @@ var otpGenerator = require("otp-generator");
 const { send } = require("../helpers/sendEmail");
 const client = require("../helpers/init_redis");
 const User = require("../Models/User.model");
+const { getHtmltoSend } = require("../Templates/useTemplate");
+const { sendEmail } = require("../helpers/aws_email");
 
 module.exports = {
   sendEmail: async (req, res, next) => {
-    console.log(req.body)
+    //console.log(req.body)
     try {
       const { email, type } = req.body;
       let email_subject, email_message;
@@ -16,7 +18,7 @@ module.exports = {
       if (!type) return res.status(400).send({ error: "tipo no recibido" });
 
       const user = await User.findOne({ email: email }, '_id')
-      console.log('userId', user._id)
+      //console.log('userId', user._id)
       // Generate OTP
       const otp = otpGenerator.generate(6, {
         alphabets: false,
@@ -25,7 +27,7 @@ module.exports = {
       });
       const now = new Date();
       const expiration_time = Date.now() + (1000 * 60 * 10);
-      console.log(OTP)
+
       // Create OTP instance in DB
       const otpEl = {
         otp: otp,
@@ -37,7 +39,7 @@ module.exports = {
           //createError.InternalServerError();
           return;
         }
-        console.log("OTP guardado en DB");
+        //console.log("OTP guardado en DB");
       });
 
       // Create details object containing the email and otp id
@@ -69,18 +71,15 @@ module.exports = {
           email_message = message(otp);
           email_subject = subject_mail;
         } else if (type == "2FA") {
-          const {
-            message,
-            subject_mail,
-          } = require("../Templates/auth/email_2FA");
-          email_message = message(otp);
-          email_subject = subject_mail;
+          email_message = getHtmltoSend("../Templates/auth/2FA_template.hbs", {
+            otp,
+          });
+          email_subject = "Codigo de confirmación inicio de sesión";
         } else {
           return res.status(400).send({ error: "Tipo incorrecto recibido" });
         }
       }
-      console.log('otp', otp);
-      send(email, email_subject, email_message);
+      sendEmail(email, email_subject, email_message);
       res.status(200).send({ message: 'Email envido', verification_key: encoded });
     } catch (err) {
       return res.status(400).send({ error: err.message });
@@ -92,7 +91,7 @@ module.exports = {
       const { verification_key, otp, email } = req.body;
       //console.log(req.body);
       const user = await User.findOne({ email: email }, '_id')
-      console.log(user)
+      //console.log(user)
       if (!verification_key) {
         const response = {
           Status: "Failure",
@@ -142,7 +141,7 @@ module.exports = {
           return;
         }
         const otp_instance = JSON.parse(result);
-        console.log('otp_instance', otp_instance);
+        //console.log('otp_instance', otp_instance);
         //Check if OTP is available in the DB
         if (otp_instance != null) {
           //Check if OTP is already used or not
@@ -161,7 +160,7 @@ module.exports = {
                   email: email,
                 };
                 req.payload = response
-                console.log(response)
+                //console.log(response)
                 next()
               } else {
                 const response = {

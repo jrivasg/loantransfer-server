@@ -12,13 +12,11 @@ const logger = require("morgan");
 const createError = require("http-errors");
 const cors = require("cors");
 //const cookieParser = require("cookie-parser");
-//require("./helpers/generate_keys"); // Solo una vez para generar las claves para crear los tokens
 require("./helpers/init_mongodb");
-//const { verifyAccessToken } = require("./helpers/jwt_helper");
 require("./helpers/init_redis");
 
 // Prueba programar email
-// require("./helpers/sendEmail").scheduleEmail();
+//require("./helpers/aws_email");
 
 // Configuración Socket.io
 const io = require("socket.io")(https, {
@@ -38,6 +36,7 @@ require("./Controllers/Socket/Chat.socket")(io);
 require("./Controllers/Socket/Bid.socket")(io);
 require("./Controllers/Socket/Notification.socket")(io);
 
+// Importación de las rutas
 const {
   AuthRoute,
   UserRoute,
