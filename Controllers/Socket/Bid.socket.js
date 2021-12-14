@@ -4,7 +4,7 @@ const { promisify } = require("util");
 const client = require("../../helpers/init_redis");
 const getAsyncRedis = promisify(client.get).bind(client);
 var mongoose = require("mongoose");
-const sendEmail = require("../../helpers/sendEmail");
+const sendEmail = require("../../helpers/aws_email");
 
 const NEW_BID_EVENT = "newBidEvent";
 const STARTING_BID = "startingBid";

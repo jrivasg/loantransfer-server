@@ -76,6 +76,11 @@ const BidSchema = new Schema(
     ],
     finish: { type: Boolean, default: false },
     viewers: [{ type: Schema.Types.ObjectId, ref: "User" }],
+    notifications: {
+      created: { type: Boolean, default: false },
+      start: { type: Boolean, default: false },
+      winner: { type: Boolean, default: false }
+    },
   },
   {
     timestamps: true,

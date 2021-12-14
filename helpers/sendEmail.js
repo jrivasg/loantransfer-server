@@ -69,6 +69,31 @@ module.exports = {
       console.log("Mensaje programado enviado");
     });
   },
+
+  pruebasSchedule: async () => {
+    const tempdate = new Date();
+    const dateSchedule = new Date(
+      tempdate.getFullYear(),
+      tempdate.getMonth(),
+      tempdate.getDate(),
+      tempdate.getHours(),
+      tempdate.getMinutes(),
+      tempdate.getSeconds() + 1
+    );
+
+    dateSchedule.setSeconds(dateSchedule.getSeconds() + 2);
+
+    const job = schedule.scheduleJob(dateSchedule, function () {
+      console.log("Mensaje programado enviado");
+    });
+    job.id = 'iddeljob'
+const job1 = schedule.scheduleJob(dateSchedule, function () {
+  console.log("Mensaje programado enviado");
+});
+    job1.id = "iddeljob2";
+    //console.log(job);
+    console.log('Lista trabajos', Object.values(schedule.scheduledJobs)[0].key);
+  },
 };
 
 const tempBid = {

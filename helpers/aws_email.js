@@ -1,4 +1,6 @@
 const nodemailer = require("nodemailer");
+const schedule = require("node-schedule");
+const Job = require("../Models/job");
 
 const sendEmail = async (toAddresses, subject, body_html) => {
   // Create the SMTP transport.
@@ -12,7 +14,6 @@ const sendEmail = async (toAddresses, subject, body_html) => {
     },
   });
 
-  // Specify the fields in the email.
   let mailOptions = {
     from: "Info Loan Transfer <info@loan-transfer.com>",
     to: toAddresses,
@@ -21,12 +22,6 @@ const sendEmail = async (toAddresses, subject, body_html) => {
     //bcc: bccAddresses,
     //text: body_text,
     html: body_html,
-    // Custom headers for configuration set and message tags.
-    /* headers: {
-      "X-SES-CONFIGURATION-SET": configurationSet,
-      "X-SES-MESSAGE-TAGS": tag0,
-      "X-SES-MESSAGE-TAGS": tag1,
-    }, */
   };
 
   // Send the email.
@@ -35,6 +30,28 @@ const sendEmail = async (toAddresses, subject, body_html) => {
   console.log("Message sent! Message ID: ", info.messageId);
 };
 
+const scheduleEmail = async (toAddresses, subject, body_html, date) => {
+  const dateSchedule = new Date(date);
+
+  schedule.scheduleJob(dateSchedule, function () {
+    sendEmail(toAddresses, subject, body_html);
+  });
+
+  new Job({
+    email: {
+      date: dateSchedule,
+      html: body_html,
+      subject,
+    },
+    type: "emailToAll",
+  }).save(async (err, job) => {
+    if (err) {
+      console.log(err);
+    }
+  });
+};
+
 module.exports = {
   sendEmail,
+  scheduleEmail,
 };

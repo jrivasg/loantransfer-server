@@ -3,7 +3,8 @@ const Bid = require("../Models/bid.model");
 const User = require("../Models/User.model");
 var mongoose = require("mongoose");
 const client = require("../helpers/init_redis");
-const sendEmail = require('../helpers/sendEmail');
+const aws_email = require("../helpers/aws_email");
+const { getHtmltoSend } = require("../Templates/useTemplate");
 
 module.exports = {
   getAll: async (req, res, next) => {
@@ -52,7 +53,10 @@ module.exports = {
   getOneSubbid: async (req, res, next) => {
     const { bid_id, subbid_id } = req.body;
     try {
-      const bid = await Bid.findById(bid_id)/* .populate({ path: 'viewers', select: 'displayName' }) */.lean();
+      const bid = await Bid.findById(
+        bid_id
+      ) /* .populate({ path: 'viewers', select: 'displayName' }) */
+        .lean();
       const subbid = bid.bids.find(
         (sub) => String(sub._id) === String(subbid_id)
       );
@@ -142,8 +146,27 @@ module.exports = {
           return res.status(500).json(err);
         }
         initilizeRedisBidObject(bid);
+
+        // Obtención de datos para envío de nueva y subasta y programar envío de recordatorio
         const company = await User.findById(seller).select("company");
-        sendEmail.scheduleEmail(bid, company);
+        let users = await User.find({}).select("email -_id").lean();
+        users = users.map((user) => user.email);
+        const tempTime = new Date(bid.starting_time);
+        tempTime.setHours(tempTime.getHours() + 2);
+
+        const email_message = getHtmltoSend(
+          "../Templates/bid/newBid_template.hbs",
+          {
+            bid,
+            bids: bid.bids,
+            id: String(bid._id).slice(-6),
+            company,
+            start: tempTime.toLocaleString(),
+          }
+        );
+        const email_subject = "Codigo de confirmación inicio de sesión";
+
+        aws_email.sendEmail('info@loan-transfer.com', email_subject, email_message);
         res.status(200).json(bid);
       });
     }

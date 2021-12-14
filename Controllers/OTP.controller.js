@@ -1,14 +1,13 @@
 const OTP = require("../Models/OTP.model");
 const { encode, decode } = require("../helpers/crypt");
 var otpGenerator = require("otp-generator");
-const { send } = require("../helpers/sendEmail");
 const client = require("../helpers/init_redis");
 const User = require("../Models/User.model");
 const { getHtmltoSend } = require("../Templates/useTemplate");
 const { sendEmail } = require("../helpers/aws_email");
 
 module.exports = {
-  sendEmail: async (req, res, next) => {
+  sendOTPcode: async (req, res, next) => {
     //console.log(req.body)
     try {
       const { email, type } = req.body;

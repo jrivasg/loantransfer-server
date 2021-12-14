@@ -1,12 +1,15 @@
 require("dotenv").config();
 const express = require("express");
-require("dotenv").config();
 const fs = require("fs");
 const app = express();
-const https = require("https").createServer({
-  key: fs.readFileSync('./privkeyloan.pem'),
-  cert: fs.readFileSync('./fullchainloan.pem')
-}, app);
+const http = require("http").createServer(app);
+const https = require("https").createServer(
+  {
+    key: fs.readFileSync("./privkeyloan.pem"),
+    cert: fs.readFileSync("./fullchainloan.pem"),
+  },
+  app
+);
 //const http = require("http").createServer(app);
 const logger = require("morgan");
 const createError = require("http-errors");
@@ -16,10 +19,10 @@ require("./helpers/init_mongodb");
 require("./helpers/init_redis");
 
 // Prueba programar email
-//require("./helpers/aws_email");
+//require("./helpers/sendEmail").pruebasSchedule();
 
 // Configuración Socket.io
-const io = require("socket.io")(https, {
+const io = require("socket.io")(http, {
   cors: {
     orgin: "*",
   },
@@ -52,7 +55,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors());
 app.use(express.static(__dirname + "/public"));
-//app.use(cookieParser()); 
+//app.use(cookieParser());
 
 app.get(
   "/",
@@ -86,7 +89,7 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 3000;
 
-https.listen(PORT, () => {
+http.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
 
