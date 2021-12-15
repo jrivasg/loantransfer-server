@@ -1,6 +1,6 @@
 const fs = require("fs");
 const path = require("path");
-const handlebars = require("handlebars");;
+const handlebars = require("handlebars");
 
 module.exports = {
   getHtmltoSend: (templatePath, keysObject) => {

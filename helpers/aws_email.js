@@ -1,6 +1,7 @@
 const nodemailer = require("nodemailer");
 const schedule = require("node-schedule");
-const Job = require("../Models/job");
+const Job = require("../Models/job.model");
+const User = require("../Models/User.model");
 
 const sendEmail = async (toAddresses, subject, body_html) => {
   // Create the SMTP transport.
@@ -30,17 +31,19 @@ const sendEmail = async (toAddresses, subject, body_html) => {
   console.log("Message sent! Message ID: ", info.messageId);
 };
 
-const scheduleEmail = async (toAddresses, subject, body_html, date) => {
+const scheduleEmail = async (subject, body_html, date) => {
   const dateSchedule = new Date(date);
 
-  schedule.scheduleJob(dateSchedule, function () {
-    sendEmail(toAddresses, subject, body_html);
+  schedule.scheduleJob(dateSchedule, async () => {
+    let users = await User.find({}).select("email -_id").lean();
+    users = users.map((user) => user.email);
+    sendEmail(users, subject, body_html);
   });
 
   new Job({
     email: {
       date: dateSchedule,
-      html: body_html,
+      html: String(body_html),
       subject,
     },
     type: "emailToAll",

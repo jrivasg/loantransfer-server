@@ -2,7 +2,6 @@ require("dotenv").config();
 const express = require("express");
 const fs = require("fs");
 const app = express();
-const http = require("http").createServer(app);
 const https = require("https").createServer(
   {
     key: fs.readFileSync("./privkeyloan.pem"),
@@ -20,9 +19,10 @@ require("./helpers/init_redis");
 
 // Prueba programar email
 //require("./helpers/sendEmail").pruebasSchedule();
+require("./helpers/scheduler").reschedulePendingJobs(); 
 
 // Configuración Socket.io
-const io = require("socket.io")(http, {
+const io = require("socket.io")(https, {
   cors: {
     orgin: "*",
   },
@@ -89,27 +89,8 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 3000;
 
-http.listen(PORT, () => {
+https.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
 
 module.exports = io;
-
-/* app.use((req, res, next) => {
- res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE");
- const allowedOrigins = [
-   "http://localhost:3000",
-   "http://localhost:9000",
-   "https://886fb727b703.ngrok.io",
- ];
- const origin = req.headers.origin;
- if (allowedOrigins.includes(origin)) {
-   res.setHeader("Access-Control-Allow-Origin", origin);
- }
- res.header(
-   "Access-Control-Allow-Headers",
-   "Access-Control-Allow-Origin, withcredentials, Origin, Accept, Accept-Language, Accept-Version, Content-Length, Content-Language', Content-MD5, Content-Type, Credentials, Date, X-Api-Version, X-Response-Time, X-PINGOTHER, X-CSRF-Token, Authorization, X-Requested-With"
- );
- res.header("Access-Control-Allow-Credentials", true);
- next();
-});  */

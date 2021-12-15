@@ -145,7 +145,8 @@ module.exports = {
           console.log(err);
           return res.status(500).json(err);
         }
-        initilizeRedisBidObject(bid);
+        let jsonBid = JSON.parse(JSON.stringify(bid));
+        initilizeRedisBidObject(jsonBid);
 
         // Obtención de datos para envío de nueva y subasta y programar envío de recordatorio
         const company = await User.findById(seller).select("company");
@@ -157,16 +158,23 @@ module.exports = {
         const email_message = getHtmltoSend(
           "../Templates/bid/newBid_template.hbs",
           {
-            bid,
-            bids: bid.bids,
+            bid: jsonBid,
             id: String(bid._id).slice(-6),
-            company,
+            company: company.company,
             start: tempTime.toLocaleString(),
           }
         );
-        const email_subject = "Codigo de confirmación inicio de sesión";
+        const email_subject = "Nueva Cartera programada para subasta";
+        aws_email.sendEmail(
+          "info@loan-transfer.com",
+          email_subject,
+          email_message
+        );
 
-        aws_email.sendEmail('info@loan-transfer.com', email_subject, email_message);
+        const dateSchedule = new Date();
+        dateSchedule.setDate(dateSchedule.getDate() + 14);
+        aws_email.scheduleEmail(email_subject, email_message, dateSchedule);
+
         res.status(200).json(bid);
       });
     }
