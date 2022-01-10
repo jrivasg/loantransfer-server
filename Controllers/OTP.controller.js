@@ -78,7 +78,7 @@ module.exports = {
           return res.status(400).send({ error: "Tipo incorrecto recibido" });
         }
       }
-      sendEmail(email, email_subject, email_message);
+      sendEmail(email, email_subject, email_message, 'logo_loan_transfer.png');
       res.status(200).send({ message: 'Email envido', verification_key: encoded });
     } catch (err) {
       return res.status(400).send({ error: err.message });

@@ -46,6 +46,10 @@ const UserSchema = new Schema(
     company: { type: String },
     cif: { type: String },
     address: { type: String },
+    sendEmail: {
+      type: Boolean,
+      default: true,
+    },
   },
   {
     timestamps: true,

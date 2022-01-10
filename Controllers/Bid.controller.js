@@ -168,7 +168,8 @@ module.exports = {
         aws_email.sendEmail(
           "info@loan-transfer.com",
           email_subject,
-          email_message
+          email_message,
+          'logo_loan_transfer.png'
         );
 
         const dateSchedule = new Date();

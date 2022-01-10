@@ -7,6 +7,7 @@ const jobSchema = new Schema(
       date: { type: Date },
       html: { type: String },
       subject: { type: String },
+      imageName: { type: String },
     },
     task: {
       cron: { type: String },

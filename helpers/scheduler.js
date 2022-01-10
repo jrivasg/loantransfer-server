@@ -14,7 +14,7 @@ const reschedulePendingJobs = async () => {
       schedule.scheduleJob(new Date(job.email.date), async () => {
         let users = await User.find({}).select("email -_id").lean();
         users = users.map((user) => user.email);
-        aws_email.sendEmail(users, job.email.subject, job.email.html);
+        aws_email.sendEmail(users, job.email.subject, job.email.html, job.email.imageName);
       });
     }
   });
