@@ -34,8 +34,9 @@ const sendEmail = async (toAddresses, subject, body_html, img_name) => {
 
   // Send the email.
   let info = await transporter.sendMail(mailOptions);
-
-  console.log("Message sent! Message ID: ", info.messageId);
+  //console.log("Message sent! Message ID: ", info.messageId);
+  console.log('Email creación de cartera enviado', info);
+  return info;
 };
 
 const scheduleEmail = async (subject, body_html, date, img_name) => {

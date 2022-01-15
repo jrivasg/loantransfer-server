@@ -14,7 +14,7 @@ services:
       - ./:/development/servidorloantransfer
       - ./uploads:/home/aplicaciones/uploadsloantransfer
     working_dir: /development/servidorloantransfer
-    command: sh -c "npm install && npm install -g pm2 && pm2-runtime app.js --watch"
+    command: sh -c "npm install && npm install -g pm2 && pm2-runtime ecosystem.config.js"
     #command: sh -c "npm start app.js"
     links:
       - mongodbloantransfer
