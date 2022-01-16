@@ -4,15 +4,16 @@ const { promisify } = require("util");
 const client = require("../../helpers/init_redis");
 const getAsyncRedis = promisify(client.get).bind(client);
 var mongoose = require("mongoose");
-const sendEmail = require("../../helpers/aws_email");
+const aws_email = require("../../helpers/aws_email");
+const User = require("../../Models/User.model");
+const { getHtmltoSend } = require("../../Templates/useTemplate");
 
 const NEW_BID_EVENT = "newBidEvent";
 const STARTING_BID = "startingBid";
 const FINISHING_BID = "finishingBid";
-const FINISH_ALERT_BID = "finishAlertBid";
-let users = [];
 
 let bidnsp = null;
+const activeUsers = {};
 
 module.exports = (io) => {
   bidnsp = io.of("bid");
@@ -23,37 +24,35 @@ module.exports = (io) => {
     const { roomId, token } = socket.handshake.query;
     const payload = await verifyAccessToken(token);
     socket.join(roomId);
-
-    // Si hay subastas para empezar en la siguiente hora ponemos un temporizador, si hay alguna activa ya, se envía un mensaje con el id activo
-    setStartTimer(io, socket.id, payload.aud);
-
-    setFinishTimer(io, socket.id, payload.aud);
+    activeUsers[payload.aud] = {};
 
     // Listen for new bids
     socket.on(NEW_BID_EVENT, (data) => {
-      console.log(socket.id + " realizó una puja por valor de " + data.body.amount);
+      console.log(
+        socket.id + " realizó una puja por valor de " + data.body.amount
+      );
       // Se comprueba si la puja es valida y si lo es se guarda en el log
       saveSendLastBid(data, io, roomId, payload);
     });
 
     // Eventos para la desconexión
     socket.on("disconnect", (reason) => {
+      // Desconectamos el socket de la room
       socket.leave(roomId);
+      // Comprobamos si tiene algun timer programado y lo eliminamos
+      activeUsers[payload.aud].finishTimer &&
+        clearTimeout(activeUsers[payload.aud].finishTimer);
+      // Eliminamos el usuario del objeto de usuarios activos
+      delete activeUsers[payload.aud];
     });
-  });
-};
 
-const verifyAccessToken = (authtoken) => {
-  //console.log("verificando token", authtoken);
-  return new Promise((resolve, reject) => {
-    JWT.verify(authtoken, process.env.ACCESS_TOKEN_SECRET, (err, payload) => {
-      if (err) {
-        const message =
-          err.name === "JsonWebTokenError" ? "Unauthorized" : err.message;
-        return message;
-      }
-      resolve(payload);
-    });
+    // Si hay subastas para empezar en la siguiente hora ponemos un temporizador,
+    // si hay alguna activa ya, se envía un mensaje con el id activo
+    const nextHourBids = await getNextHourBids();
+    if (nextHourBids.length > 0) {
+      setStartTimer(io, socket.id, payload.aud, nextHourBids);
+      setFinishTimer(io, socket.id, payload.aud, nextHourBids);
+    }
   });
 };
 
@@ -130,20 +129,28 @@ const saveSendLastBid = async (data, io, roomId, payload) => {
   }
 };
 
-const getNextHourBids = async () => {
-  const now = new Date();
-  let startingMoment = new Date();
-  startingMoment.setHours(now.getHours() - 2);
-  let endingMoment = new Date();
-  endingMoment.setHours(now.getHours() + 2);
-
-  try {
-    return await Bid.find({
-      starting_time: { $gte: startingMoment, $lte: endingMoment },
-    }).lean();
-  } catch (err) {
-    console.err(err);
-  }
+const setStartTimer = async (io, socket_id, user_id, nextHourBids) => {
+  // Se itera sobre ellas para obtener sus datos y enviarlas al método startBid para iniciarla
+  nextHourBids.forEach(async (eachBid) => {
+    // Si queda tiempo para el inicio de la puja, se pone un temporizador y al final de la misma se envia la info sobre las pujas obtenida de redis
+    // Si ya ha empezado, se busca y envia directamente la info.
+    const interval = new Date(eachBid.starting_time).getTime() - Date.now();
+    //console.log('interval', interval / 1000 / 60)
+    if (interval > 0) {
+      setTimeout(async () => {
+        //console.log('Timeout ejecutado')
+        // Se obtienen los lotes y se busca en redis la info de la ultima puja, o la inicial si aun no se ha iniciado
+        const subbidCurrrentResult = await getSubbidCurrrentResult(eachBid);
+        startBid(subbidCurrrentResult, eachBid, io, socket_id, user_id);
+      }, interval);
+    } else {
+      // Se obtienen los lotes y se busca en redis la info de la ultima puja, o la inicial si aun no se ha iniciado
+      const subbidCurrrentResult = await getSubbidCurrrentResult(eachBid);
+      // Activamos cada lote para que empieze
+      //console.log('puja ya comenzada')
+      startBid(subbidCurrrentResult, eachBid, io, socket_id, user_id);
+    }
+  });
 };
 
 // Método que envía el mensaje de startBiding a los miembros conectados a la sala
@@ -160,6 +167,7 @@ const startBid = (subbidCurrrentResult, eachBid, io, socket_id, user_id) => {
         $addToSet: {
           viewers: mongoose.Types.ObjectId(user_id),
         },
+        active: true,
       },
       { new: true },
       (err, bid) => {
@@ -167,44 +175,45 @@ const startBid = (subbidCurrrentResult, eachBid, io, socket_id, user_id) => {
         //console.log('viwers modificado', bid.viewers);
       }
     );
-    // Se itera sobre cada lote y se comprueba se modifica la propiedad active según su fecha de inicio y fin respecto del momento actual
+    // Se itera sobre cada lote y se comprueba se modifica la propiedad active según su fecha de inicio
+    // y fin respecto del momento actual, para mandar por el socket
     const tempArray = subbidCurrrentResult.map((eachsubbid) => {
-      //console.log(eachsubbid.subbid_id, startTime < now && now < endTime)
       eachsubbid.active = active;
       return eachsubbid;
     });
-    //console.log('evento ' + STARTING_BID + ' enviado', tempArray)
+
     return bidnsp.to(socket_id).emit(STARTING_BID, tempArray);
   }
 };
 
-const setStartTimer = async (io, socket_id, user_id) => {
-  // Obtenemos las subastas activas en las dos horas siguientes y previas al momento actual
-  const nextHourBids = await getNextHourBids();
+const setFinishTimer = async (io, socket_id, user_id, nextHourBids) => {
+  // Antes de programar un timer se comprueba q no exista otro, o se borra
+  activeUsers[user_id].finishTimer &&
+    clearTimeout(activeUsers[user_id].finishTimer);
+  nextHourBids.forEach(async (eachBid) => {
+    // Si queda tiempo para el fin de la puja, se pone un temporizador y al final del mismo se envia la info sobre el fin de la puja
+    // Si ya ha finalizado, se busca y envia directamente la info.
+    const interval = new Date(eachBid.end_time).getTime() - Date.now();
 
-  // Si hay subastas en el momento actual se itera sobre ellas para obtener sus datos y enviarlas al método startBid para iniciarla
-  if (nextHourBids.length > 0) {
-    nextHourBids.forEach(async (eachBid) => {
-      // Si queda tiempo para el inicio de la puja, se pone un temporizador y al final de la misma se envia la info sobre las pujas obtenida de redis
-      // Si ya ha empezado, se busca y envia directamente la info.
-      const interval = new Date(eachBid.starting_time).getTime() - Date.now();
-      //console.log('interval', interval / 1000 / 60)
-      if (interval > 0) {
-        setTimeout(async () => {
-          //console.log('Timeout ejecutado')
-          // Se obtienen los lotes y se busca en redis la info de la ultima puja, o la inicial si aun no se ha iniciado
-          const subbidCurrrentResult = await getSubbidCurrrentResult(eachBid);
-          startBid(subbidCurrrentResult, eachBid, io, socket_id, user_id);
-        }, interval);
-      } else {
-        // Se obtienen los lotes y se busca en redis la info de la ultima puja, o la inicial si aun no se ha iniciado
-        const subbidCurrrentResult = await getSubbidCurrrentResult(eachBid);
-        // Activamos cada lote para que empieze
-        //console.log('puja ya comenzada')
-        startBid(subbidCurrrentResult, eachBid, io, socket_id, user_id);
-      }
-    });
-  }
+    //console.log('interval', interval / 1000 / 60)
+    console.log("Finish interval", interval);
+    if (interval > 0) {
+      //console.log('Timeout programado para dentro de ' + interval / 1000 / 60 + ' min')
+      const subbidCurrrentResult = await getSubbidCurrrentResult(eachBid);
+      const finishTimerId = setTimeout(() => {
+        console.log("Nuevo fisnishTimer programado");
+        finishBid(
+          subbidCurrrentResult,
+          eachBid,
+          io,
+          socket_id,
+          user_id,
+          finishTimerId
+        );
+        activeUsers[user_id].finishTimer = finishTimerId;
+      }, interval);
+    } 
+  });
 };
 
 const finishBid = (
@@ -215,13 +224,12 @@ const finishBid = (
   user_id,
   finishTimerId
 ) => {
-  //sendWinnerEmail(subbidCurrrentResult, eachBid, user_id);
-
   try {
-    Bid.findByIdAndUpdate(eachBid._id,
+    Bid.findByIdAndUpdate(
+      eachBid._id,
       {
         active: false,
-        finish: true
+        finish: true,
       },
       (err, bid) => {
         if (err) res.status(500).json(err);
@@ -250,20 +258,15 @@ const finishBid = (
       return setFinishTimer(io, socket_id, user_id);
     }
 
-    // Las fechas coinciden, se finalizan las subastas
-    const now = Date.now();
-    const endTime = new Date(eachsubbid.end_time).getTime();
-    eachsubbid.active = now < endTime;
-    eachsubbid.finish = !eachsubbid.active;
     // Se guarda la información de la cartera: Historial de apuestas y de clientes coenctados
-    saveFinishBidData(eachBid, eachsubbid);
+    saveFinishBidData(eachBid, eachsubbid, user_id);
     return eachsubbid;
   });
 
   return bidnsp.to(socket_id).emit(FINISHING_BID, tempArray);
 };
 
-const saveFinishBidData = async (eachBid, eachsubbid) => {
+const saveFinishBidData = async (eachBid, eachsubbid, user_id) => {
   try {
     const redisLog = JSON.parse(
       await getAsyncRedis(eachsubbid.subbid_id).catch((err) => {
@@ -277,7 +280,6 @@ const saveFinishBidData = async (eachBid, eachsubbid) => {
       Bid.findOneAndUpdate(
         {
           _id: eachBid._id,
-          finish: false,
         },
         {
           $set: {
@@ -290,8 +292,13 @@ const saveFinishBidData = async (eachBid, eachsubbid) => {
           arrayFilters: [{ "el._id": eachsubbid.subbid_id }],
           new: true,
         },
-        (err, bid) => {
+        async (err, bid) => {
           if (err) res.status(500).json(err);
+          // Si es el socket del ganador (user_id) se envía email de ganador de subasta
+          if (String(user_id) === String(lastBid.from)) {
+            let jsonBid = JSON.parse(JSON.stringify(eachsubbid));
+            sendWinnerEmail(eachBid, jsonBid, user_id);
+          }
         }
       ).catch((err) => {
         if (err) console.error(err);
@@ -300,60 +307,6 @@ const saveFinishBidData = async (eachBid, eachsubbid) => {
     console.log(error);
   }
 };
-
-const setFinishTimer = async (io, socket_id, user_id) => {
-  // Obtenemos las subastas activas en las dos horas siguientes y previas al momento actual
-  const nextHourBids = await getNextHourBids();
-  console.log("Nuevo fisnishTimer programado");
-  if (nextHourBids.length > 0) {
-    nextHourBids.forEach(async (eachBid) => {
-      // Si queda tiempo para el fin de la puja, se pone un temporizador y al final del mismo se envia la info sobre el fin de la puja
-      // Si ya ha finalizado, se busca y envia directamente la info.
-      const interval = new Date(eachBid.end_time).getTime() - Date.now();
-      const alertInterval = new Date(eachBid.end_time).getTime() - Date.now() - (3 * 60 * 1000);
-      //console.log('interval', interval / 1000 / 60)
-      if (interval > 0) {
-        //console.log('Timeout programado para dentro de ' + interval / 1000 / 60 + ' min')
-        const subbidCurrrentResult = await getSubbidCurrrentResult(eachBid);
-        const finishTimerId = setTimeout(() => {
-          finishBid(
-            subbidCurrrentResult,
-            eachBid,
-            io,
-            socket_id,
-            user_id,
-            finishTimerId
-          );
-        }, interval);
-        // Timer para avisar subasta terminando        
-        /* setTimeout(() => {
-          finishAlert(subbidCurrrentResult, eachBid, socket_id);
-        }, alertInterval); */
-
-      } else {
-        // Se obtienen los lotes y se busca en redis la info de la ultima puja.
-        const subbidCurrrentResult = await getSubbidCurrrentResult(eachBid);
-        // Activamos cada lote para que empiece
-        //console.log('puja ya comenzada')
-        finishBid(subbidCurrrentResult, eachBid, io, socket_id, user_id);
-        // Timer para avisar subasta terminando        
-        /* setTimeout(() => {
-          finishAlert(subbidCurrrentResult, eachBid, socket_id);
-        }, alertInterval); */
-      }
-    });
-  }
-};
-
-const finishAlert = (subbidCurrrentResult, eachBid, socket_id) => {
-  const tempArray = subbidCurrrentResult.map(async (eachsubbid) => {
-    return {
-      bid_id: eachBid._id,
-      subbid_id: eachsubbid._id,
-    }
-  });
-  bidnsp.to(socket_id).emit(FINISH_ALERT_BID, tempArray);
-}
 
 // Se itera sobre los diferentes lotes y se obtiene la info de las pujas de redis
 const getSubbidCurrrentResult = async (eachBid) => {
@@ -410,18 +363,59 @@ const getSubbidCurrrentResult = async (eachBid) => {
   return subbids;
 };
 
-const sendWinnerEmail = (subbidCurrrentResult, eachBid, user_id) => {
-  subbidCurrrentResult.map((subbid) => {
-    console.log("sendWinnerEmail", subbid);
-
-    const lastBid = subbid[subbid.length - 1];
-    if (lastBid.from === user_id) {
-      const tempSubbid = Bid.findOne({
-        bids: { $elemMatch: { _id: "subbid.subbid_id" } },
-      });
-      console.log(tempSubbid);
-      return lastBid;
-    }
+const verifyAccessToken = (authtoken) => {
+  //console.log("verificando token", authtoken);
+  return new Promise((resolve, reject) => {
+    JWT.verify(authtoken, process.env.ACCESS_TOKEN_SECRET, (err, payload) => {
+      if (err) {
+        const message =
+          err.name === "JsonWebTokenError" ? "Unauthorized" : err.message;
+        return message;
+      }
+      resolve(payload);
+    });
   });
-  //sendEmail();
+};
+
+const getNextHourBids = async () => {
+  const now = new Date();
+  let startingMoment = new Date();
+  startingMoment.setHours(now.getHours() - 2);
+  let endingMoment = new Date();
+  endingMoment.setHours(now.getHours() + 2);
+
+  try {
+    return await Bid.find({
+      starting_time: { $gte: startingMoment, $lte: endingMoment },
+      finish: false,
+    }).lean();
+  } catch (err) {
+    console.log(err);
+  }
+};
+
+const sendWinnerEmail = async (eachBid, subbid, user_id) => {
+  // Obtención de datos para envío de nueva y subasta y programar envío de recordatorio
+  const company = await User.findById(eachBid.seller).select("company");
+  const winner = await User.findById(String(user_id)).lean();
+  console.log("user_id", user_id);
+  console.log("winner", winner);
+
+  const email_message = getHtmltoSend(
+    "../Templates/bid/bid_winner_template.hbs",
+    {
+      bid: eachBid,
+      subbid: subbid,
+      subbid_id: String(subbid._id).slice(-6),
+      company: company.company,
+    }
+  );
+  const email_subject = "Ha ganado usted la subasta";
+  const emailSentInfo = await aws_email.sendEmail(
+    winner.email,
+    email_subject,
+    email_message,
+    "logo_loan_transfer.png"
+  );
+  console.log("Email ganador subasta enviado", emailSentInfo);
 };

@@ -31,8 +31,8 @@
       border: 1px solid #e5e5e5; vertical-align: top; } .button { padding: 30px
       0 0; } .info-block { padding: 0 20px; width: 260px; } .info-lote {
       text-align: left; width: 100%; } .mini-block-container { padding: 30px
-      50px; width: 500px; } .mini-block { background-color: #ffffff; width:
-      498px; border: 1px solid #cccccc; border-radius: 5px; padding: 45px 75px;
+      50px 10px 50px; width: 500px; } .mini-block { background-color: #ffffff; width:
+      498px; border: 1px solid #cccccc; border-radius: 5px; padding: 45px 75px 45px 75px;
       } .block-rounded { width: 260px; } .info-img { width: 258px;
       border-radius: 5px 5px 0 0; } .force-width-img { width: 480px; height: 1px
       !important; } .force-width-full { width: 600px; height: 1px !important; }
@@ -98,37 +98,9 @@
           align="left"
           valign="top"
           width="100%"
-          style="
-            background: repeat-x
-              url(http://s3.amazonaws.com/swu-filepicker/4E687TRe69Ld95IDWyEg_bg_top_02.jpg)
-              #ffffff;
-          "
+          
         >
-          <center>
-            <img
-              src="http://s3.amazonaws.com/swu-filepicker/SBb2fQPrQ5ezxmqUTgCr_transparent.png"
-              class="force-width-gmail"
-            />
-            <table
-              cellspacing="0"
-              cellpadding="0"
-              width="100%"
-              bgcolor="#ffffff"
-              background="http://s3.amazonaws.com/swu-filepicker/4E687TRe69Ld95IDWyEg_bg_top_02.jpg"
-              style="background-color: transparent"
-            >
-              <tr>
-                <td
-                  width="100%"
-                  height="80"
-                  valign="top"
-                  style="text-align: center; vertical-align: middle"
-                >
-                  <!--[if gte mso 9]>
-            <v:rect xmlns:v="urn:schemas-microsoft-com:vml" fill="true" stroke="false" style="mso-width-percent:1000;height:80px; v-text-anchor:middle;">
-              <v:fill type="tile" src="http://s3.amazonaws.com/swu-filepicker/4E687TRe69Ld95IDWyEg_bg_top_02.jpg" color="#ffffff" />
-              <v:textbox inset="0,0,0,0">
-            <![endif]-->
+          
                   <center>
                     <table
                       cellpadding="0"
@@ -138,26 +110,19 @@
                     >
                       <tr>
                         <td
-                          style="vertical-align: middle; text-align: left; padding-left: 60px !important;"
+                          style="vertical-align: middle; text-align: left; padding-left: 60px !important; margin-top: 15px"
                         >
                           <a href=""><img
-                              width="200"
-                              height="47"
-                              src="logo_NPL_Broker.png"
+                              width="341"
+                              height="110"
+                              src="cid:imagename"
                               alt="logo"
                             /></a>
                         </td>
                       </tr>
                     </table>
                   </center>
-                  <!--[if gte mso 9]>
-              </v:textbox>
-            </v:rect>
-            <![endif]-->
-                </td>
-              </tr>
-            </table>
-          </center>
+                  
         </td>
       </tr>
       <tr>
@@ -171,14 +136,13 @@
           <center>
             <table cellspacing="0" cellpadding="0" width="600" class="w320">
               <tr>
-                <td class="header-lg">¡Enhorabuena ha ganado la subasta!</td>
+                <td class="header-lg">¡Enhorabuena ha ganado usted la subasta!</td>
               </tr>
               <tr>
                 <td class="free-text">
-                  Ha resultado ganador de los siguientes lotes de 
-                  la cartera #<b>{{id}}</b>
+                  Cartera ofertada: #<b>{{bid._id}}</b>
                   de
-                  <b>{{company}}</b>                  
+                  <b>{{company}}</b>:                  
                 </td>
               </tr>
               <tr>
@@ -201,20 +165,19 @@
                               >
                                 <tr style="text-align: left !important">
                                   Lotes ganados
-                                  {{start}}
                                   <hr />
                                 </tr>
                                 <ul
                                   style="list-style-type:none; padding-left: 0 !important; width: 100%"
                                 >
-                                  {{#each bids}}
+                                  {{#each bid.bids}}
                                     <li
                                       style="width: 100%; display: inline"
                                     ><span
                                         style="float: left"
-                                      >{{reference}}:</span>
+                                      >{{subbid_id}}:</span>
                                       <span style="float: right">
-                                        {{mainDebt}}€</span>
+                                        {{finalAmount}}€</span>
 
                                     </li>
                                     <hr />
@@ -229,6 +192,7 @@
                                 <a
                                   href="https://nplbroker.com/"
                                   style="
+                                    padding: 3px;
                                     background-color: #32727B;
                                     border-radius: 5px;
                                     color: #ffffff;
@@ -248,7 +212,14 @@
                               </div>
                             </td>
                           </tr>
+
                         </table>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td style="font-size: 13px;">
+                        Este es un mensaje informativo, no es necesaria su
+                        respuesta.
                       </td>
                     </tr>
                   </table>
@@ -268,17 +239,30 @@
         <center>
           <table cellspacing="0" cellpadding="0" width="600" class="w320">
             <tr>
-              <td style="padding: 25px 0 25px">
-                <strong>NPL Brokers S.L.</strong><br />
-                1234 Awesome St
+              <td style="margin: -20px 0 15px">
+                <strong>LOAN TRANSFER S.L.</strong><br />
+                C/ Velázquez 10, ZURICENTER
                 <br />
-                Madrid
-                <br /><br />
+                28001, Madrid
+                <br />
+                91 781 80 80
+                <br />
+              </td>
+            </tr>
+          </table>
+        </center>
+         
+        <center>
+          <table cellspacing="0" cellpadding="0" width="600" class="w320">
+            <tr>
+              <td style="margin: -20px 0 15px; font-size: 10px">
+                <link src="">Para dejar de recibir estas notificaciones haga click en este link</link>
               </td>
             </tr>
           </table>
         </center>
       </td>
+
     </table>
   </body>
 </html>

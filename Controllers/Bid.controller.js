@@ -41,6 +41,7 @@ module.exports = {
       //console.log(req.payload);
       const bid = await Bid.find({
         starting_time: { $gte: yesterday, $lte: endTime },
+        finish: false,
       }).lean();
 
       bid.sort(compare);
@@ -153,7 +154,11 @@ module.exports = {
         let users = await User.find({}).select("email -_id").lean();
         users = users.map((user) => user.email);
         const tempTime = new Date(bid.starting_time);
-        tempTime.setHours(tempTime.getHours() + 2);
+        tempTime.setHours(
+          tempTime.getHours() +
+            1 +
+            Math.abs(new Date().getTimezoneOffset() / 60)
+        );
 
         const email_message = getHtmltoSend(
           "../Templates/bid/newBid_template.hbs",
@@ -161,16 +166,17 @@ module.exports = {
             bid: jsonBid,
             id: String(bid._id).slice(-6),
             company: company.company,
-            start: tempTime.toLocaleString(),
+            start: tempTime.toLocaleString("es-ES"),
           }
         );
         const email_subject = "Nueva Cartera programada para subasta";
-        aws_email.sendEmail(
-          "info@loan-transfer.com",
+        const emailSentInfo = await aws_email.sendEmail(
+          "jrivasgonzalez@gmail.com",
           email_subject,
           email_message,
-          'logo_loan_transfer.png'
+          "logo_loan_transfer.png"
         );
+        console.log("Email creación de cartera enviado", emailSentInfo);
 
         const dateSchedule = new Date();
         dateSchedule.setDate(dateSchedule.getDate() + 14);
@@ -223,10 +229,10 @@ const compare = (a, b) => {
   const secondElement = new Date(b.starting_time).getTime();
 
   if (firstElement > secondElement) {
-    return -1;
+    return 1;
   }
   if (firstElement < secondElement) {
-    return 1;
+    return -1;
   }
   return 0;
 };
