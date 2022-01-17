@@ -2,14 +2,14 @@ require("dotenv").config();
 const express = require("express");
 const fs = require("fs");
 const app = express();
-const https = require("https").createServer(
+/* const https = require("https").createServer(
   {
     key: fs.readFileSync("./privkeyloan.pem"),
     cert: fs.readFileSync("./fullchainloan.pem"),
   },
   app
-);
-//const http = require("http").createServer(app);
+); */ 
+const https = require("http").createServer(app);
 const logger = require("morgan");
 const createError = require("http-errors");
 const cors = require("cors");

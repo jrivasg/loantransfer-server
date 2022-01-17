@@ -13,7 +13,7 @@ const STARTING_BID = "startingBid";
 const FINISHING_BID = "finishingBid";
 
 let bidnsp = null;
-const activeUsers = {};
+let activeUsers = {};
 
 module.exports = (io) => {
   bidnsp = io.of("bid");
@@ -24,7 +24,7 @@ module.exports = (io) => {
     const { roomId, token } = socket.handshake.query;
     const payload = await verifyAccessToken(token);
     socket.join(roomId);
-    activeUsers[payload.aud] = {};
+    activeUsers[payload.aud] = { socket_id: socket.id };
 
     // Listen for new bids
     socket.on(NEW_BID_EVENT, (data) => {
@@ -42,6 +42,8 @@ module.exports = (io) => {
       // Comprobamos si tiene algun timer programado y lo eliminamos
       activeUsers[payload.aud].finishTimer &&
         clearTimeout(activeUsers[payload.aud].finishTimer);
+      activeUsers[payload.aud].startTimer &&
+        clearTimeout(activeUsers[payload.aud].startTimer);
       // Eliminamos el usuario del objeto de usuarios activos
       delete activeUsers[payload.aud];
     });
@@ -57,15 +59,10 @@ module.exports = (io) => {
 };
 
 const saveSendLastBid = async (data, io, roomId, payload) => {
-  const { bid_id, amount, subbid_id, nextAmount } = data.body;
+  const { bid_id, amount, subbid_id } = data.body;
 
   try {
     // Obtenemos la subasta y el lote, asi como su log de pujas en redis.
-    const bid = await Bid.findById(bid_id).lean();
-    const subbid = bid.bids.find(
-      (eachbid) => String(eachbid._id) === String(subbid_id)
-    );
-
     let lastBidRedisArray = JSON.parse(
       await getAsyncRedis(subbid_id).catch((err) => {
         if (err) console.error(err);
@@ -75,7 +72,7 @@ const saveSendLastBid = async (data, io, roomId, payload) => {
     // Obtenemos el la últimas puja
     const lastBidRedis = lastBidRedisArray[lastBidRedisArray.length - 1];
 
-    // Si la ultima cantidad guardad no es la mismas q esta observando al pujar el cliente porque otro se haya adelantado, se desecha.
+    // Si la ultima cantidad guardada no es la mismas q esta observando al pujar el cliente porque otro se haya adelantado, se desecha.
     // También se comprueba si la ultima puja fue propia para no pujar doble
     if (lastBidRedis.amount === amount || lastBidRedis.from === payload.aud)
       return;
@@ -95,9 +92,15 @@ const saveSendLastBid = async (data, io, roomId, payload) => {
           end_time: newEndDateTime,
         },
         { new: true },
-        (err, bid) => {
+        async (err, bid) => {
           if (err) res.status(500).json(err);
           console.log("nuevo end_time", bid.end_time);
+          // Programamos nuevos finishTimers para todos los usuarios activos
+          const jsonBid = JSON.parse(JSON.stringify(bid));
+          
+          Object.keys(activeUsers).forEach((key) => {            
+            setFinishTimer(io, activeUsers[key].socket_id, key, [jsonBid]);
+          });
         }
       );
     }
@@ -130,6 +133,9 @@ const saveSendLastBid = async (data, io, roomId, payload) => {
 };
 
 const setStartTimer = async (io, socket_id, user_id, nextHourBids) => {
+  // Antes de programar un timer se comprueba q no exista otro, o se borra
+  activeUsers[user_id].startTimer &&
+    clearTimeout(activeUsers[user_id].startTimer);
   // Se itera sobre ellas para obtener sus datos y enviarlas al método startBid para iniciarla
   nextHourBids.forEach(async (eachBid) => {
     // Si queda tiempo para el inicio de la puja, se pone un temporizador y al final de la misma se envia la info sobre las pujas obtenida de redis
@@ -137,10 +143,11 @@ const setStartTimer = async (io, socket_id, user_id, nextHourBids) => {
     const interval = new Date(eachBid.starting_time).getTime() - Date.now();
     //console.log('interval', interval / 1000 / 60)
     if (interval > 0) {
-      setTimeout(async () => {
+      const startTimer = setTimeout(async () => {
         //console.log('Timeout ejecutado')
         // Se obtienen los lotes y se busca en redis la info de la ultima puja, o la inicial si aun no se ha iniciado
         const subbidCurrrentResult = await getSubbidCurrrentResult(eachBid);
+        activeUsers[user_id].startTimer = startTimer;
         startBid(subbidCurrrentResult, eachBid, io, socket_id, user_id);
       }, interval);
     } else {
@@ -190,18 +197,16 @@ const setFinishTimer = async (io, socket_id, user_id, nextHourBids) => {
   // Antes de programar un timer se comprueba q no exista otro, o se borra
   activeUsers[user_id].finishTimer &&
     clearTimeout(activeUsers[user_id].finishTimer);
+
   nextHourBids.forEach(async (eachBid) => {
     // Si queda tiempo para el fin de la puja, se pone un temporizador y al final del mismo se envia la info sobre el fin de la puja
     // Si ya ha finalizado, se busca y envia directamente la info.
     const interval = new Date(eachBid.end_time).getTime() - Date.now();
 
-    //console.log('interval', interval / 1000 / 60)
-    console.log("Finish interval", interval);
     if (interval > 0) {
       //console.log('Timeout programado para dentro de ' + interval / 1000 / 60 + ' min')
-      const subbidCurrrentResult = await getSubbidCurrrentResult(eachBid);
+      const subbidCurrrentResult = await getSubbidCurrrentResult(eachBid);      
       const finishTimerId = setTimeout(() => {
-        console.log("Nuevo fisnishTimer programado");
         finishBid(
           subbidCurrrentResult,
           eachBid,
@@ -210,9 +215,11 @@ const setFinishTimer = async (io, socket_id, user_id, nextHourBids) => {
           user_id,
           finishTimerId
         );
-        activeUsers[user_id].finishTimer = finishTimerId;
       }, interval);
-    } 
+      activeUsers[user_id] &&
+        (activeUsers[user_id].finishTimer = finishTimerId);
+      activeUsers[user_id].finishTimer&& console.log('Nuevo finishTimer programado');
+    }
   });
 };
 
@@ -242,23 +249,7 @@ const finishBid = (
   }
 
   const tempArray = subbidCurrrentResult.map(async (eachsubbid) => {
-    // Comprobamos que la fecha de finalización es el mismo en el bid que en redis
-    let redisSubbid = JSON.parse(
-      await getAsyncRedis(eachsubbid.subbid_id).catch((err) => {
-        if (err) console.error(err);
-      })
-    );
-    const bid_endtime = new Date(eachBid.end_time).getTime();
-    const subbid_endtime = new Date(
-      redisSubbid[redisSubbid.length - 1].endTime
-    ).getTime();
-    // Las fechas no coinciden se vuelve a programar el timer
-    if (bid_endtime !== subbid_endtime) {
-      clearTimeout(finishTimerId);
-      return setFinishTimer(io, socket_id, user_id);
-    }
-
-    // Se guarda la información de la cartera: Historial de apuestas y de clientes coenctados
+    // Se guarda la información de la cartera: Historial de apuestas y de clientes conectados
     saveFinishBidData(eachBid, eachsubbid, user_id);
     return eachsubbid;
   });
@@ -266,43 +257,44 @@ const finishBid = (
   return bidnsp.to(socket_id).emit(FINISHING_BID, tempArray);
 };
 
-const saveFinishBidData = async (eachBid, eachsubbid, user_id) => {
+const saveFinishBidData = async (eachBid, eachsubbid, user_id) => {  
   try {
     const redisLog = JSON.parse(
       await getAsyncRedis(eachsubbid.subbid_id).catch((err) => {
         if (err) console.error(err);
       })
     );
-
     const lastBid = redisLog[redisLog.length - 1];
-    eachBid.bids[0].data.length === 0 &&
-      redisLog &&
-      Bid.findOneAndUpdate(
-        {
-          _id: eachBid._id,
-        },
-        {
-          $set: {
-            "bids.$[el].data": redisLog,
-            "bids.$[el].buyer": lastBid.from,
-            "bids.$[el].finalAmount": lastBid.amount,
+    // Para evitar procesos duplicados solo guarda la información de cada lote el ganador
+    if (String(user_id) === String(lastBid.from)) {
+      eachBid.bids[0].data.length === 0 &&
+        redisLog &&
+        Bid.findOneAndUpdate(
+          {
+            _id: eachBid._id,
           },
-        },
-        {
-          arrayFilters: [{ "el._id": eachsubbid.subbid_id }],
-          new: true,
-        },
-        async (err, bid) => {
-          if (err) res.status(500).json(err);
-          // Si es el socket del ganador (user_id) se envía email de ganador de subasta
-          if (String(user_id) === String(lastBid.from)) {
+          {
+            $set: {
+              "bids.$[el].data": redisLog,
+              "bids.$[el].buyer": lastBid.from,
+              "bids.$[el].finalAmount": lastBid.amount,
+            },
+          },
+          {
+            arrayFilters: [{ "el._id": eachsubbid.subbid_id }],
+            new: true,
+          },
+          async (err, bid) => {
+            if (err) res.status(500).json(err);
             let jsonBid = JSON.parse(JSON.stringify(eachsubbid));
             sendWinnerEmail(eachBid, jsonBid, user_id);
+            // Limpiamos el objeto activeUsers al haber terminado la subasta
+            activeUsers[user_id] && (activeUsers = {});
           }
-        }
-      ).catch((err) => {
-        if (err) console.error(err);
-      });
+        ).catch((err) => {
+          if (err) console.error(err);
+        });
+    }
   } catch (error) {
     console.log(error);
   }
@@ -398,8 +390,6 @@ const sendWinnerEmail = async (eachBid, subbid, user_id) => {
   // Obtención de datos para envío de nueva y subasta y programar envío de recordatorio
   const company = await User.findById(eachBid.seller).select("company");
   const winner = await User.findById(String(user_id)).lean();
-  console.log("user_id", user_id);
-  console.log("winner", winner);
 
   const email_message = getHtmltoSend(
     "../Templates/bid/bid_winner_template.hbs",
@@ -417,5 +407,5 @@ const sendWinnerEmail = async (eachBid, subbid, user_id) => {
     email_message,
     "logo_loan_transfer.png"
   );
-  console.log("Email ganador subasta enviado", emailSentInfo);
+  console.log("Email ganador subasta enviado a ", emailSentInfo.accepted);
 };

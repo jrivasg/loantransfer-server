@@ -176,7 +176,7 @@ module.exports = {
           email_message,
           "logo_loan_transfer.png"
         );
-        console.log("Email creación de cartera enviado", emailSentInfo);
+        //console.log("Email creación de cartera enviado", emailSentInfo);
 
         const dateSchedule = new Date();
         dateSchedule.setDate(dateSchedule.getDate() + 14);
