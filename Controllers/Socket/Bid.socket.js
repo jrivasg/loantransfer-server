@@ -7,6 +7,7 @@ var mongoose = require("mongoose");
 const aws_email = require("../../helpers/aws_email");
 const User = require("../../Models/User.model");
 const { getHtmltoSend } = require("../../Templates/useTemplate");
+const { clearTimeout } = require("timers");
 
 const NEW_BID_EVENT = "newBidEvent";
 const STARTING_BID = "startingBid";
@@ -14,6 +15,7 @@ const FINISHING_BID = "finishingBid";
 
 let bidnsp = null;
 let activeUsers = {};
+let activeBids = {};
 
 module.exports = (io) => {
   bidnsp = io.of("bid");
@@ -32,7 +34,7 @@ module.exports = (io) => {
         socket.id + " realizó una puja por valor de " + data.body.amount
       );
       // Se comprueba si la puja es valida y si lo es se guarda en el log
-      saveSendLastBid(data, io, roomId, payload);
+      saveSendLastBid(data, roomId, payload);
     });
 
     // Eventos para la desconexión
@@ -40,8 +42,6 @@ module.exports = (io) => {
       // Desconectamos el socket de la room
       socket.leave(roomId);
       // Comprobamos si tiene algun timer programado y lo eliminamos
-      activeUsers[payload.aud].finishTimer &&
-        clearTimeout(activeUsers[payload.aud].finishTimer);
       activeUsers[payload.aud].startTimer &&
         clearTimeout(activeUsers[payload.aud].startTimer);
       // Eliminamos el usuario del objeto de usuarios activos
@@ -53,12 +53,12 @@ module.exports = (io) => {
     const nextHourBids = await getNextHourBids();
     if (nextHourBids.length > 0) {
       setStartTimer(io, socket.id, payload.aud, nextHourBids);
-      setFinishTimer(io, socket.id, payload.aud, nextHourBids);
+      setFinishTimer(roomId, nextHourBids);
     }
   });
 };
 
-const saveSendLastBid = async (data, io, roomId, payload) => {
+const saveSendLastBid = async (data, roomId, payload) => {
   const { bid_id, amount, subbid_id } = data.body;
 
   try {
@@ -81,10 +81,10 @@ const saveSendLastBid = async (data, io, roomId, payload) => {
     let newEndDateTime = new Date(lastBidRedis.endTime);
     if (
       new Date(lastBidRedis.endTime).getTime() - new Date().getTime() <
-      2 * 60 * 1000
+      1 * 60 * 1000
     ) {
       newEndDateTime = new Date(
-        new Date(lastBidRedis.endTime).getTime() + 1 * 60 * 1000
+        new Date(lastBidRedis.endTime).getTime() + 30 * 1000
       );
       Bid.findByIdAndUpdate(
         bid_id,
@@ -97,10 +97,8 @@ const saveSendLastBid = async (data, io, roomId, payload) => {
           console.log("nuevo end_time", bid.end_time);
           // Programamos nuevos finishTimers para todos los usuarios activos
           const jsonBid = JSON.parse(JSON.stringify(bid));
-          
-          Object.keys(activeUsers).forEach((key) => {            
-            setFinishTimer(io, activeUsers[key].socket_id, key, [jsonBid]);
-          });
+
+          setFinishTimer(roomId, [jsonBid], true);
         }
       );
     }
@@ -193,10 +191,10 @@ const startBid = (subbidCurrrentResult, eachBid, io, socket_id, user_id) => {
   }
 };
 
-const setFinishTimer = async (io, socket_id, user_id, nextHourBids) => {
+/* const setFinishTimer = async (io, socket_id, user_id, nextHourBids) => {
   // Antes de programar un timer se comprueba q no exista otro, o se borra
   activeUsers[user_id].finishTimer &&
-    clearTimeout(activeUsers[user_id].finishTimer);
+    clearTimeout(activeUsers[user_id].finishTimer);  
 
   nextHourBids.forEach(async (eachBid) => {
     // Si queda tiempo para el fin de la puja, se pone un temporizador y al final del mismo se envia la info sobre el fin de la puja
@@ -221,16 +219,35 @@ const setFinishTimer = async (io, socket_id, user_id, nextHourBids) => {
       activeUsers[user_id].finishTimer&& console.log('Nuevo finishTimer programado');
     }
   });
+}; */
+
+const setFinishTimer = async (room_id, nextHourBids, extendTimer = false) => {
+  nextHourBids.forEach(async (eachBid) => {
+    // Se crea el objeto subastra activa si no existe para esta
+    !activeBids[eachBid._id] && (activeBids[eachBid._id] = {});
+    
+    // Si se va a extender el timer se borra el anterior
+    clearTimeout(activeBids[eachBid._id].finishTimer);
+
+    // Si queda tiempo para el fin de la puja, se pone un temporizador y al final del mismo se envia la info sobre el fin de la puja
+    // Si ya ha finalizado, se busca y envia directamente la info.
+    const interval = new Date(eachBid.end_time).getTime() - Date.now();
+    if (!activeBids[eachBid._id]?.finishTimer || extendTimer) {
+      if (interval > 0) {
+        //console.log('Timeout programado para dentro de ' + interval / 1000 / 60 + ' min')
+        const subbidCurrrentResult = await getSubbidCurrrentResult(eachBid);
+        const finishTimerId = setTimeout(() => {
+          finishBid(subbidCurrrentResult, eachBid, room_id);
+        }, interval);
+        activeBids[eachBid._id] &&
+          (activeBids[eachBid._id].finishTimer = finishTimerId);
+        activeBids[eachBid._id] && console.log("Nuevo finishTimer programado");
+      }
+    }
+  });
 };
 
-const finishBid = (
-  subbidCurrrentResult,
-  eachBid,
-  io,
-  socket_id,
-  user_id,
-  finishTimerId
-) => {
+const finishBid = (subbidCurrrentResult, eachBid, room_id) => {
   try {
     Bid.findByIdAndUpdate(
       eachBid._id,
@@ -248,16 +265,19 @@ const finishBid = (
     console.log(error);
   }
 
+  // Eliminamos el timer de finalización al finalizar la puja
+  delete activeBids[eachBid._id];
+
   const tempArray = subbidCurrrentResult.map(async (eachsubbid) => {
     // Se guarda la información de la cartera: Historial de apuestas y de clientes conectados
-    saveFinishBidData(eachBid, eachsubbid, user_id);
+    saveFinishBidData(eachBid, eachsubbid);
     return eachsubbid;
   });
 
-  return bidnsp.to(socket_id).emit(FINISHING_BID, tempArray);
+  return bidnsp.in(room_id).emit(FINISHING_BID, tempArray);
 };
 
-const saveFinishBidData = async (eachBid, eachsubbid, user_id) => {  
+const saveFinishBidData = async (eachBid, eachsubbid) => {
   try {
     const redisLog = JSON.parse(
       await getAsyncRedis(eachsubbid.subbid_id).catch((err) => {
@@ -266,35 +286,34 @@ const saveFinishBidData = async (eachBid, eachsubbid, user_id) => {
     );
     const lastBid = redisLog[redisLog.length - 1];
     // Para evitar procesos duplicados solo guarda la información de cada lote el ganador
-    if (String(user_id) === String(lastBid.from)) {
-      eachBid.bids[0].data.length === 0 &&
-        redisLog &&
-        Bid.findOneAndUpdate(
-          {
-            _id: eachBid._id,
+    eachBid.bids[0].data.length === 0 &&
+      redisLog &&
+      Bid.findOneAndUpdate(
+        {
+          _id: eachBid._id,
+        },
+        {
+          $set: {
+            "bids.$[el].data": redisLog,
+            "bids.$[el].buyer": lastBid.from,
+            "bids.$[el].finalAmount": lastBid.amount,
           },
-          {
-            $set: {
-              "bids.$[el].data": redisLog,
-              "bids.$[el].buyer": lastBid.from,
-              "bids.$[el].finalAmount": lastBid.amount,
-            },
-          },
-          {
-            arrayFilters: [{ "el._id": eachsubbid.subbid_id }],
-            new: true,
-          },
-          async (err, bid) => {
-            if (err) res.status(500).json(err);
-            let jsonBid = JSON.parse(JSON.stringify(eachsubbid));
-            sendWinnerEmail(eachBid, jsonBid, user_id);
-            // Limpiamos el objeto activeUsers al haber terminado la subasta
-            activeUsers[user_id] && (activeUsers = {});
-          }
-        ).catch((err) => {
-          if (err) console.error(err);
-        });
-    }
+        },
+        {
+          arrayFilters: [{ "el._id": eachsubbid.subbid_id }],
+          new: true,
+        },
+        async (err, bid) => {
+          if (err) res.status(500).json(err);
+          let jsonBid = JSON.parse(JSON.stringify(bid));
+          const lote = jsonBid.bids.find(
+            (lote) => String(lote._id) === String(eachsubbid.subbid_id)
+          );
+          sendWinnerEmail(jsonBid, lote, lastBid.from);
+        }
+      ).catch((err) => {
+        if (err) console.error(err);
+      });
   } catch (error) {
     console.log(error);
   }
