@@ -156,8 +156,8 @@ module.exports = {
         const tempTime = new Date(bid.starting_time);
         tempTime.setHours(
           tempTime.getHours() +
-            1 +
-            Math.abs(new Date().getTimezoneOffset() / 60)
+          1 +
+          Math.abs(new Date().getTimezoneOffset() / 60)
         );
 
         const email_message = getHtmltoSend(
@@ -171,7 +171,7 @@ module.exports = {
         );
         const email_subject = "Nueva Cartera programada para subasta";
         const emailSentInfo = await aws_email.sendEmail(
-          "jrivasgonzalez@gmail.com",
+          users,
           email_subject,
           email_message,
           "logo_loan_transfer.png"
