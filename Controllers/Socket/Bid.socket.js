@@ -69,7 +69,7 @@ const saveSendLastBid = async (data, roomId, payload) => {
       })
     );
 
-    // Obtenemos el la últimas puja
+    // Obtenemos la últimas puja
     const lastBidRedis = lastBidRedisArray[lastBidRedisArray.length - 1];
 
     // Si la ultima cantidad guardada no es la mismas q esta observando al pujar el cliente porque otro se haya adelantado, se desecha.
@@ -77,15 +77,14 @@ const saveSendLastBid = async (data, roomId, payload) => {
     if (lastBidRedis.amount === amount || lastBidRedis.from === payload.aud)
       return;
 
-    // Le sumamos 1 minutos al tiempo actual de fin si quedan menos de 2 min
-    let newEndDateTime = new Date(lastBidRedis.endTime);
-    if (
-      new Date(lastBidRedis.endTime).getTime() - new Date().getTime() <
-      1 * 60 * 1000
-    ) {
-      newEndDateTime = new Date(
-        new Date(lastBidRedis.endTime).getTime() + 30 * 1000
-      );
+    // Le sumamos 30 segundos al tiempo actual de fin si quedan menos de 1 min
+    let endDateTime = new Date(activeBids[bid_id].endTime);
+    let now = new Date();
+    let newEndDateTime;
+
+    if (endDateTime.getTime() - now.getTime() < 1 * 60 * 1000) {
+      newEndDateTime = new Date(endDateTime.getTime() + 30 * 1000);
+
       Bid.findByIdAndUpdate(
         bid_id,
         {
@@ -98,7 +97,7 @@ const saveSendLastBid = async (data, roomId, payload) => {
           // Programamos nuevos finishTimers para todos los usuarios activos
           const jsonBid = JSON.parse(JSON.stringify(bid));
 
-          setFinishTimer(roomId, [jsonBid], true);
+          setFinishTimer(roomId, [jsonBid], newEndDateTime);
         }
       );
     }
@@ -111,7 +110,7 @@ const saveSendLastBid = async (data, roomId, payload) => {
       amount: amount, // nextAmount
       subbid_id,
       active: true,
-      endTime: newEndDateTime,
+      endTime: newEndDateTime ?? endDateTime,
     };
 
     lastBidRedisArray.push(puja);
@@ -162,8 +161,11 @@ const setStartTimer = async (io, socket_id, user_id, nextHourBids) => {
 const startBid = (subbidCurrrentResult, eachBid, io, socket_id, user_id) => {
   const now = Date.now();
   const startTime = new Date(eachBid.starting_time).getTime();
-  const endTime = new Date(eachBid.end_time).getTime();
+  const endTime = activeBids[eachBid._id]?.endTime
+    ? activeBids[eachBid._id].endTime.getTime()
+    : new Date(eachBid.end_time).getTime();
   const active = startTime < now && now < endTime;
+
   // Se añade al usuario a la lista de usuarios que estan presentes durante la subasta si ésta está activa.
   if (active) {
     Bid.findByIdAndUpdate(
@@ -184,6 +186,7 @@ const startBid = (subbidCurrrentResult, eachBid, io, socket_id, user_id) => {
     // y fin respecto del momento actual, para mandar por el socket
     const tempArray = subbidCurrrentResult.map((eachsubbid) => {
       eachsubbid.active = active;
+      eachsubbid.endTime = new Date(endTime).getTime() - new Date().getTime();
       return eachsubbid;
     });
 
@@ -191,63 +194,42 @@ const startBid = (subbidCurrrentResult, eachBid, io, socket_id, user_id) => {
   }
 };
 
-/* const setFinishTimer = async (io, socket_id, user_id, nextHourBids) => {
-  // Antes de programar un timer se comprueba q no exista otro, o se borra
-  activeUsers[user_id].finishTimer &&
-    clearTimeout(activeUsers[user_id].finishTimer);  
-
-  nextHourBids.forEach(async (eachBid) => {
-    // Si queda tiempo para el fin de la puja, se pone un temporizador y al final del mismo se envia la info sobre el fin de la puja
-    // Si ya ha finalizado, se busca y envia directamente la info.
-    const interval = new Date(eachBid.end_time).getTime() - Date.now();
-
-    if (interval > 0) {
-      //console.log('Timeout programado para dentro de ' + interval / 1000 / 60 + ' min')
-      const subbidCurrrentResult = await getSubbidCurrrentResult(eachBid);      
-      const finishTimerId = setTimeout(() => {
-        finishBid(
-          subbidCurrrentResult,
-          eachBid,
-          io,
-          socket_id,
-          user_id,
-          finishTimerId
-        );
-      }, interval);
-      activeUsers[user_id] &&
-        (activeUsers[user_id].finishTimer = finishTimerId);
-      activeUsers[user_id].finishTimer&& console.log('Nuevo finishTimer programado');
-    }
-  });
-}; */
-
-const setFinishTimer = async (room_id, nextHourBids, extendTimer = false) => {
+const setFinishTimer = async (room_id, nextHourBids, newEndDateTime = null) => {
   nextHourBids.forEach(async (eachBid) => {
     // Se crea el objeto subastra activa si no existe para esta
-    !activeBids[eachBid._id] && (activeBids[eachBid._id] = {});
-    
+    !activeBids[eachBid._id] &&
+      (activeBids[eachBid._id] = { endTime: eachBid.end_time });
+
     // Si se va a extender el timer se borra el anterior
-    clearTimeout(activeBids[eachBid._id].finishTimer);
+    newEndDateTime && clearTimeout(activeBids[eachBid._id].finishTimer);
 
     // Si queda tiempo para el fin de la puja, se pone un temporizador y al final del mismo se envia la info sobre el fin de la puja
     // Si ya ha finalizado, se busca y envia directamente la info.
-    const interval = new Date(eachBid.end_time).getTime() - Date.now();
-    if (!activeBids[eachBid._id]?.finishTimer || extendTimer) {
+    const interval = newEndDateTime
+      ? newEndDateTime.getTime() - Date.now()
+      : new Date(eachBid.end_time).getTime() - Date.now();
+
+    if (!activeBids[eachBid._id]?.finishTimer || newEndDateTime) {
       if (interval > 0) {
-        //console.log('Timeout programado para dentro de ' + interval / 1000 / 60 + ' min')
-        const subbidCurrrentResult = await getSubbidCurrrentResult(eachBid);
+        // Se guarda en memoria la fecha en la que termina la subasta si hay una nueva
+        newEndDateTime && (activeBids[eachBid._id].endTime = newEndDateTime);
+
+        // Programamos el timer
         const finishTimerId = setTimeout(() => {
-          finishBid(subbidCurrrentResult, eachBid, room_id);
+          finishBid(eachBid, room_id);
         }, interval);
-        activeBids[eachBid._id] &&
-          (activeBids[eachBid._id].finishTimer = finishTimerId);
-        activeBids[eachBid._id] && console.log("Nuevo finishTimer programado");
+        // Guardamos la referencia del timer para borrarlo en caso de tener que extenderlo
+        activeBids[eachBid._id].finishTimer = finishTimerId;
+        console.log(
+          "Subasta finaliza en ",
+          minTommss(activeBids[eachBid._id].finishTimer._idleTimeout / 60000)
+        );
       }
     }
   });
 };
 
-const finishBid = (subbidCurrrentResult, eachBid, room_id) => {
+const finishBid = async (eachBid, room_id) => {
   try {
     Bid.findByIdAndUpdate(
       eachBid._id,
@@ -265,16 +247,25 @@ const finishBid = (subbidCurrrentResult, eachBid, room_id) => {
     console.log(error);
   }
 
-  // Eliminamos el timer de finalización al finalizar la puja
-  delete activeBids[eachBid._id];
+  let subbidCurrrentResult = await getSubbidCurrrentResult(eachBid);
 
-  const tempArray = subbidCurrrentResult.map(async (eachsubbid) => {
+  const tempArray = subbidCurrrentResult.map((eachsubbid) => {
     // Se guarda la información de la cartera: Historial de apuestas y de clientes conectados
     saveFinishBidData(eachBid, eachsubbid);
+    eachsubbid.finish = true;
+    eachsubbid.active = false;
+    eachsubbid.endTime = 0;
     return eachsubbid;
   });
 
-  return bidnsp.in(room_id).emit(FINISHING_BID, tempArray);
+  // Eliminamos el objeto de la puja al finalizar
+  delete activeBids[eachBid._id];
+  console.log("Subasta finalizada");
+
+  setTimeout(() => {
+    return bidnsp.in(room_id).emit(FINISHING_BID, tempArray);
+  }, 1000);
+  
 };
 
 const saveFinishBidData = async (eachBid, eachsubbid) => {
@@ -324,6 +315,7 @@ const getSubbidCurrrentResult = async (eachBid) => {
   const subbidIdArray = eachBid.bids.map((eachsubbid) =>
     String(eachsubbid._id)
   );
+
   const subbids = [];
   const promises = [];
 
@@ -428,3 +420,10 @@ const sendWinnerEmail = async (eachBid, subbid, user_id) => {
   );
   console.log("Email ganador subasta enviado a ", emailSentInfo.accepted);
 };
+
+function minTommss(minutes) {
+  var sign = minutes < 0 ? "-" : "";
+  var min = Math.floor(Math.abs(minutes));
+  var sec = Math.floor((Math.abs(minutes) * 60) % 60);
+  return sign + (min < 10 ? "0" : "") + min + ":" + (sec < 10 ? "0" : "") + sec;
+}

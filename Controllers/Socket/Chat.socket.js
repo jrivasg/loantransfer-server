@@ -5,7 +5,7 @@ const NEW_CHAT_MESSAGE_EVENT = "newChatMessage";
 let chatnsp = null;
 
 module.exports = (io) => {
-  chatnsp = io.of("chat");  
+  chatnsp = io.of("chat");
   chatnsp.on("connection", async (socket) => {
     console.log(socket.id + " connected to chat socket");
 
@@ -17,7 +17,7 @@ module.exports = (io) => {
     // Listen for new CHAT messages
     socket.on(NEW_CHAT_MESSAGE_EVENT, (data) => {
       // Se guarda cada mensaje que se transmite a traves del socket en el objeto de la conversacion y se emite al resto de la sala
-      console.log("evento mensaje chat");
+      console.log("evento mensaje chat", data);
       saveChatMessage(data, roomId, payload);
     });
 
@@ -51,6 +51,9 @@ const saveChatMessage = (data, roomId, payload) => {
     doc_id: data.body.doc_id || null,
     mimetype: data.body.mimetype || null,
   };
+
+  chatnsp.in(roomId).emit(NEW_CHAT_MESSAGE_EVENT, message);
+  console.log("guardad mensaje en chat: " + roomId);
   try {
     Chat.findByIdAndUpdate(
       roomId,
@@ -61,12 +64,11 @@ const saveChatMessage = (data, roomId, payload) => {
       },
       { new: true },
       (err, doc) => {
-        if (err) console.log("Error al guardar el mensaje");
+        if (err) console.log("Error al guardar el mensaje", err);
         //console.log(doc);
       }
     );
   } catch (error) {
     console.log(error);
   }
-  chatnsp.in(roomId).emit(NEW_CHAT_MESSAGE_EVENT, message);
 };

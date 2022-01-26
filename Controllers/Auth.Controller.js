@@ -52,9 +52,9 @@ module.exports = {
       const user = await User.findOne({ email: result.email }).populate('chat');
       if (!user) throw createError.NotFound("User not registered");
 
-      const isMatch = await user.isValidPassword(result.password);
+      /* const isMatch = await user.isValidPassword(result.password);
       if (!isMatch)
-        throw createError.Unauthorized("Username/password not valid");
+        throw createError.Unauthorized("Username/password not valid"); */
 
       const accessToken = await signAccessToken(user.id);
       const refreshToken = await signRefreshToken(user.id);
