@@ -165,24 +165,25 @@
                                 width="100%"
                               >
                                 <tr style="text-align: left !important">
-                                  Lote ganado
+                                  Lotes ganados
                                   <hr />
-                                </tr>
+                                </tr>                              
+
                                 <ul
                                   style="list-style-type:none; padding-left: 0 !important; width: 100%"
                                 >
-                                  
+                                  {{#each subbidsArray}}
                                     <li
                                       style="width: 100%; display: inline"
                                     ><span
                                         style="float: left"
-                                      >{{subbid.reference}}:</span>
+                                      >{{reference}}:</span>
                                       <span style="float: right">
-                                        {{subbid.finalAmount}}€</span>
+                                        {{finalAmount}}€</span>
 
                                     </li>
                                     <hr />
-                                
+                                  {{/each}}
                                 </ul>
                               </table>
                             </td>

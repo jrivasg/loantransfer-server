@@ -26,7 +26,9 @@ module.exports = (io) => {
     const { roomId, token } = socket.handshake.query;
     const payload = await verifyAccessToken(token);
     socket.join(roomId);
-    const {displayName, company} = await User.findById(payload.aud).select('displayName company').lean()
+    const { displayName, company } = await User.findById(payload.aud)
+      .select("displayName company")
+      .lean();
     activeUsers[payload.aud] = { socket_id: socket.id, displayName, company };
 
     // Listen for new bids
@@ -106,7 +108,9 @@ const saveSendLastBid = async (data, roomId, payload) => {
     // Creamos una nueva puja con los datos del pujador y de las cantidades y se añade al log
     const puja = {
       from: payload.aud,
-      name: `${activeUsers[payload.aud].displayName} de ${activeUsers[payload.aud].company}`,
+      name: `${activeUsers[payload.aud].displayName} de ${
+        activeUsers[payload.aud].company
+      }`,
       time: new Date(),
       bid_id,
       amount: amount, // nextAmount
@@ -251,6 +255,9 @@ const finishBid = async (eachBid, room_id) => {
 
   let subbidCurrrentResult = await getSubbidCurrrentResult(eachBid);
 
+  // Mandamos el array de subbidEmail para su envío
+  sendWinnerEmail(eachBid, subbidCurrrentResult);
+
   const tempArray = subbidCurrrentResult.map((eachsubbid) => {
     // Se guarda la información de la cartera: Historial de apuestas y de clientes conectados
     saveFinishBidData(eachBid, eachsubbid);
@@ -264,10 +271,11 @@ const finishBid = async (eachBid, room_id) => {
   delete activeBids[eachBid._id];
   console.log("Subasta finalizada");
 
+  // Mandamos email a los ganadores
+
   setTimeout(() => {
     return bidnsp.in(room_id).emit(FINISHING_BID, tempArray);
   }, 1000);
-  
 };
 
 const saveFinishBidData = async (eachBid, eachsubbid) => {
@@ -298,11 +306,11 @@ const saveFinishBidData = async (eachBid, eachsubbid) => {
         },
         async (err, bid) => {
           if (err) res.status(500).json(err);
-          let jsonBid = JSON.parse(JSON.stringify(bid));
+          /* let jsonBid = JSON.parse(JSON.stringify(bid));
           const lote = jsonBid.bids.find(
             (lote) => String(lote._id) === String(eachsubbid.subbid_id)
           );
-          sendWinnerEmail(jsonBid, lote, lastBid.from);
+          sendWinnerEmail(jsonBid, lote, lastBid.from); */
         }
       ).catch((err) => {
         if (err) console.error(err);
@@ -399,7 +407,39 @@ const getNextHourBids = async () => {
   }
 };
 
-const sendWinnerEmail = async (eachBid, subbid, user_id) => {
+const sendWinnerEmail = async (eachBid, subbidsCurrrentResult) => {
+  // Obtenemos array de las ultimas pujas de cada log de cada lote y los agrupamos por usuarios
+  const lastBidsArray = subbidsCurrrentResult.map(subbid => subbid.at(-1));
+  const winnerArray = lastBidsArray.reduce((acc, puja) => {
+    (acc[puja.from] = acc[puja.from] || []).push(puja);
+  }, {});
+  
+  winnerArray.map();
+
+  // Obtención de datos para envío de nueva y subasta y programar envío de recordatorio
+  const company = await User.findById(eachBid.seller).select("company");
+  const winner = await User.findById(String(user_id)).lean();
+
+  const email_message = getHtmltoSend(
+    "../Templates/bid/bid_winner_template.hbs",
+    {
+      bid: eachBid,
+      subbidsArray: lastBidsArray,
+      subbid_id: String(subbid._id).slice(-6),
+      company: company.company,
+    }
+  );
+  const email_subject = "Ha ganado usted la subasta";
+  const emailSentInfo = await aws_email.sendEmail(
+    winner.email,
+    email_subject,
+    email_message,
+    "logo_loan_transfer.png"
+  );
+  console.log("Email ganador subasta enviado a ", emailSentInfo.accepted);
+};
+
+/* const sendWinnerEmail = async (eachBid, subbid, user_id) => {
   // Obtención de datos para envío de nueva y subasta y programar envío de recordatorio
   const company = await User.findById(eachBid.seller).select("company");
   const winner = await User.findById(String(user_id)).lean();
@@ -421,7 +461,7 @@ const sendWinnerEmail = async (eachBid, subbid, user_id) => {
     "logo_loan_transfer.png"
   );
   console.log("Email ganador subasta enviado a ", emailSentInfo.accepted);
-};
+}; */
 
 function minTommss(minutes) {
   var sign = minutes < 0 ? "-" : "";
