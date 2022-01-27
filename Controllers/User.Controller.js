@@ -35,7 +35,7 @@ module.exports = {
           "logo_loan_transfer.png"
         );
 
-        console.log(emailinfo.accepted)
+        console.log("Email usuario creado enviado", emailinfo.accepted);
         res.status(200).json(user);
       });
     } catch (error) {

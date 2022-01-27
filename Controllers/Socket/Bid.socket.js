@@ -26,7 +26,8 @@ module.exports = (io) => {
     const { roomId, token } = socket.handshake.query;
     const payload = await verifyAccessToken(token);
     socket.join(roomId);
-    activeUsers[payload.aud] = { socket_id: socket.id };
+    const {displayName, company} = await User.findById(payload.aud).select('displayName company').lean()
+    activeUsers[payload.aud] = { socket_id: socket.id, displayName, company };
 
     // Listen for new bids
     socket.on(NEW_BID_EVENT, (data) => {
@@ -94,9 +95,9 @@ const saveSendLastBid = async (data, roomId, payload) => {
         async (err, bid) => {
           if (err) res.status(500).json(err);
           console.log("nuevo end_time", bid.end_time);
-          // Programamos nuevos finishTimers para todos los usuarios activos
-          const jsonBid = JSON.parse(JSON.stringify(bid));
 
+          const jsonBid = JSON.parse(JSON.stringify(bid));
+          // Programamos nuevo finishTimer
           setFinishTimer(roomId, [jsonBid], newEndDateTime);
         }
       );
@@ -105,6 +106,7 @@ const saveSendLastBid = async (data, roomId, payload) => {
     // Creamos una nueva puja con los datos del pujador y de las cantidades y se añade al log
     const puja = {
       from: payload.aud,
+      name: `${activeUsers[payload.aud].displayName} de ${activeUsers[payload.aud].company}`,
       time: new Date(),
       bid_id,
       amount: amount, // nextAmount

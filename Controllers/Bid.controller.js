@@ -55,19 +55,50 @@ module.exports = {
   getOneSubbid: async (req, res, next) => {
     const { bid_id, subbid_id } = req.body;
     try {
-      const bid = await Bid.findById(
-        bid_id
-      ) /* .populate({ path: 'viewers', select: 'displayName' }) */
+      const {admin} = await User.findById(req.payload.aud)
+        .select("admin -_id")
         .lean();
+
+      const bid = await Bid.findById(bid_id).lean();
       const subbid = bid.bids.find(
         (sub) => String(sub._id) === String(subbid_id)
       );
-console.log(bid)
+
       subbid.documents = bid.documents;
       subbid.starting_time = bid.starting_time;
       subbid.end_time = bid.end_time;
       subbid.viewers = bid.viewers;
-      //console.log(subbid)
+
+      if (admin) {
+        // Si se es administrador se envia las pujas con el nombre y compañia de cada pujador
+        let pujas = await Promise.all(
+          subbid.data.map(async (puja) => {
+            if (puja.from === null) return;
+            return User.findById(mongoose.Types.ObjectId(puja.from))
+              .select("displayName company -_id")
+              .lean();
+          })
+        );
+        pujas = pujas.filter((puja) => puja !== undefined);
+        subbid.data = subbid.data.filter((puja) => puja.from !== null);
+        subbid.data = subbid.data.map((subbid, index) => {
+          subbid = { ...subbid, ...pujas[index] };
+          return subbid;
+        });
+
+        // Se envía nombre y compañía de cada persona que entró mientras estaba la subasta en marcha
+        subbid.viewers = await Promise.all(
+          subbid.viewers.map((viewer) => {
+            return User.findById(mongoose.Types.ObjectId(viewer))
+              .select("displayName company -_id")
+              .lean();
+          })
+        );
+      } else {
+        delete subbid['data'];
+        delete subbid.viewers;
+      }
+      //console.log(subbid);
       res.status(200).json(subbid);
     } catch (error) {
       next(error);
@@ -94,6 +125,24 @@ console.log(bid)
         users,
         _id,
       });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  getReport: async (req, res, next) => {
+    try {
+      const { bid_id } = req.body;
+
+      const isAdmin = await User.findById(req.payload.aud)
+        .select("admin -_id")
+        .lean();
+
+      if (isAdmin) {
+
+      }
+
+      res.status(200).json({});
     } catch (error) {
       next(error);
     }
@@ -178,7 +227,10 @@ console.log(bid)
           email_message,
           "logo_loan_transfer.png"
         );
-        //console.log("Email creación de cartera enviado", emailSentInfo);
+        console.log(
+          "Email creación de cartera enviado",
+          emailSentInfo.accepted.length > 0
+        );
 
         const dateSchedule = new Date();
         dateSchedule.setDate(dateSchedule.getDate() + 14);
