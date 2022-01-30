@@ -55,7 +55,7 @@ module.exports = {
   getOneSubbid: async (req, res, next) => {
     const { bid_id, subbid_id } = req.body;
     try {
-      const {admin} = await User.findById(req.payload.aud)
+      const { admin } = await User.findById(req.payload.aud)
         .select("admin -_id")
         .lean();
 
@@ -95,7 +95,7 @@ module.exports = {
           })
         );
       } else {
-        delete subbid['data'];
+        delete subbid["data"];
         delete subbid.viewers;
       }
       //console.log(subbid);
@@ -139,7 +139,6 @@ module.exports = {
         .lean();
 
       if (isAdmin) {
-
       }
 
       res.status(200).json({});
@@ -181,6 +180,11 @@ module.exports = {
         (err, bid) => {
           if (err) res.status(500).json(err);
           initilizeRedisBidObject(bid);
+
+          if (!bid.notifications.created) {
+            let jsonBid = JSON.parse(JSON.stringify(bid));
+            sendNewBidEmail(jsonBid);
+          }
           res.status(200).json(bid);
         }
       );
@@ -200,46 +204,13 @@ module.exports = {
         let jsonBid = JSON.parse(JSON.stringify(bid));
         initilizeRedisBidObject(jsonBid);
 
-        // Obtención de datos para envío de nueva y subasta y programar envío de recordatorio
-        const company = await User.findById(seller).select("company");
-        let users = await User.find({}).select("email -_id").lean();
-        users = users.map((user) => user.email);
-        const tempTime = new Date(bid.starting_time);
-        tempTime.setHours(
-          tempTime.getHours() +
-          1 +
-          Math.abs(new Date().getTimezoneOffset() / 60)
-        );
-
-        const email_message = getHtmltoSend(
-          "../Templates/bid/newBid_template.hbs",
-          {
-            bid: jsonBid,
-            id: String(bid._id).slice(-6),
-            company: company.company,
-            start: tempTime.toLocaleString("es-ES"),
-          }
-        );
-        const email_subject = "Nueva Cartera programada para subasta";
-        const emailSentInfo = await aws_email.sendEmail(
-          users,
-          email_subject,
-          email_message,
-          "logo_loan_transfer.png"
-        );
-        console.log(
-          "Email creación de cartera enviado",
-          emailSentInfo.accepted.length > 0
-        );
-
-        const dateSchedule = new Date();
-        dateSchedule.setDate(dateSchedule.getDate() + 14);
-        aws_email.scheduleEmail(email_subject, email_message, dateSchedule);
+        sendNewBidEmail(jsonBid);
 
         res.status(200).json(bid);
       });
     }
   },
+
   deleteBid: async (req, res, next) => {
     try {
       Bid.findByIdAndDelete(req.body.bid_id, (err, bid) => {
@@ -289,4 +260,49 @@ const compare = (a, b) => {
     return 1;
   }
   return 0;
+};
+
+const sendNewBidEmail = async (jsonBid) => {
+  // Obtención de datos para envío de nueva y subasta y programar envío de recordatorio
+  const company = await User.findById(jsonBid.seller).select("company");
+  let users = await User.find({}).select("email -_id").lean();
+  users = users.map((user) => user.email);
+  const tempTime = new Date(jsonBid.starting_time);
+  tempTime.setHours(
+    tempTime.getHours() + 1 + Math.abs(new Date().getTimezoneOffset() / 60)
+  );
+
+  const email_message = getHtmltoSend("../Templates/bid/newBid_template.hbs", {
+    bid: jsonBid,
+    id: String(jsonBid._id).slice(-6),
+    company: company.company,
+    start: tempTime.toLocaleString("es-ES"),
+  });
+  const email_subject = "Nueva Cartera programada para subasta";
+  const emailSentInfo = await aws_email.sendEmail(
+    "jrivasgonzalez@gmail.com",
+    email_subject,
+    email_message,
+    "logo_loan_transfer.png"
+  );
+
+  if (emailSentInfo.accepted.length > 0) {
+    console.log("Email creación de cartera enviado");
+    Bid.findByIdAndUpdate(
+      jsonBid._id,
+      {
+        $set: { "notifications.created": true },
+      },
+      { new: true },
+      (err, bid) => {
+        if (err) res.status(500).json(err);
+      }
+    );
+    // TODO LOG de a quien se ha enviado
+  }
+
+  // TODO arreglar el programar envio email recordatoria subasta
+  const dateSchedule = new Date();
+  dateSchedule.setDate(dateSchedule.getDate() + 14);
+  aws_email.scheduleEmail(email_subject, email_message, dateSchedule);
 };

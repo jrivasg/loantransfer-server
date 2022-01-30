@@ -260,7 +260,6 @@ const finishBid = async (eachBid, room_id) => {
 };
 
 const saveFinishBidData = async (eachBid) => {
-  console.log("save data", eachBid.bids);
   try {
     const tempSubbids = eachBid.bids.map((subbid) => {
       subbid.buyer = subbid.data[subbid.data.length - 1].from;

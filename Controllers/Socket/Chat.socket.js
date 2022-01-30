@@ -21,7 +21,7 @@ module.exports = (io) => {
     // Listen for new CHAT messages
     socket.on(NEW_CHAT_MESSAGE_EVENT, (data) => {
       // Se guarda cada mensaje que se transmite a traves del socket en el objeto de la conversacion y se emite al resto de la sala
-      console.log("evento mensaje chat");
+      console.log("Mensaje enviado en el chat " + roomId);
       saveChatMessage(data, roomId, payload);
       addMessageToQueu(data, roomId, payload);
     });
@@ -76,7 +76,7 @@ const saveChatMessage = (data, roomId, payload) => {
       }
     );
   } catch (error) {
-    console.log(error);
+   
   }
 };
 
