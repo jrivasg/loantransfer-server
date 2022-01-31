@@ -4,7 +4,12 @@ const User = require("../Models/User.model");
 var mongoose = require("mongoose");
 const client = require("../helpers/init_redis");
 const aws_email = require("../helpers/aws_email");
+const { createReport } = require("../helpers/Report");
 const { getHtmltoSend } = require("../Templates/useTemplate");
+var fs = require("fs");
+var getDirName = require("path").dirname;
+const DIR = "./uploads/";
+const path = require("path");
 
 module.exports = {
   getAll: async (req, res, next) => {
@@ -59,41 +64,9 @@ module.exports = {
         .select("admin -_id")
         .lean();
 
-      const bid = await Bid.findById(bid_id).lean();
-      const subbid = bid.bids.find(
-        (sub) => String(sub._id) === String(subbid_id)
-      );
-
-      subbid.documents = bid.documents;
-      subbid.starting_time = bid.starting_time;
-      subbid.end_time = bid.end_time;
-      subbid.viewers = bid.viewers;
-
       if (admin) {
         // Si se es administrador se envia las pujas con el nombre y compañia de cada pujador
-        let pujas = await Promise.all(
-          subbid.data.map(async (puja) => {
-            if (puja.from === null) return;
-            return User.findById(mongoose.Types.ObjectId(puja.from))
-              .select("displayName company -_id")
-              .lean();
-          })
-        );
-        pujas = pujas.filter((puja) => puja !== undefined);
-        subbid.data = subbid.data.filter((puja) => puja.from !== null);
-        subbid.data = subbid.data.map((subbid, index) => {
-          subbid = { ...subbid, ...pujas[index] };
-          return subbid;
-        });
-
-        // Se envía nombre y compañía de cada persona que entró mientras estaba la subasta en marcha
-        subbid.viewers = await Promise.all(
-          subbid.viewers.map((viewer) => {
-            return User.findById(mongoose.Types.ObjectId(viewer))
-              .select("displayName company -_id")
-              .lean();
-          })
-        );
+        subbid = await getSubbidDetails(bid_id, subbid_id);
       } else {
         delete subbid["data"];
         delete subbid.viewers;
@@ -131,17 +104,30 @@ module.exports = {
   },
 
   getReport: async (req, res, next) => {
+    const { bid_id, subbid_id } = req.query;
+    console.log(req.query);
     try {
-      const { bid_id } = req.body;
-
       const isAdmin = await User.findById(req.payload.aud)
         .select("admin -_id")
         .lean();
 
+      let workbook;
       if (isAdmin) {
-      }
+        subbid = await getSubbidDetails(bid_id, subbid_id);
+        workbook = createReport();
+        const tempath = DIR + subbid_id;
+        !fs.existsSync(tempath) && fs.mkdirSync(tempath);
 
-      res.status(200).json({});
+        var filePath = path.join("uploads/" + subbid_id + "/report.xlsx");
+
+        const result = await workbook.xlsx.writeFile(
+          "uploads/" + subbid_id + "/report.xlsx"
+        );
+        console.log(result);
+        var readStream = fs.createReadStream(filePath);
+        // We replaced all the event handlers with a simple call to readStream.pipe()
+        readStream.pipe(res);
+      }
     } catch (error) {
       next(error);
     }
@@ -305,4 +291,57 @@ const sendNewBidEmail = async (jsonBid) => {
   const dateSchedule = new Date();
   dateSchedule.setDate(dateSchedule.getDate() + 14);
   aws_email.scheduleEmail(email_subject, email_message, dateSchedule);
+};
+
+const getSubbidDetails = async (bid_id, subbid_id) => {
+  try {
+    const bid = await Bid.findById(bid_id).lean();
+    let subbid = bid.bids.find((sub) => String(sub._id) === String(subbid_id));
+
+    subbid.documents = bid.documents;
+    subbid.starting_time = bid.starting_time;
+    subbid.end_time = bid.end_time;
+    subbid.viewers = bid.viewers;
+
+    let pujas = await Promise.all(
+      subbid.data.map(async (puja) => {
+        if (puja.from === null) return;
+        return User.findById(mongoose.Types.ObjectId(puja.from))
+          .select("displayName company -_id")
+          .lean();
+      })
+    );
+    pujas = pujas.filter((puja) => puja !== undefined);
+    subbid.data = subbid.data.filter((puja) => puja.from !== null);
+
+    subbid.data = subbid.data.map((subbid, index) => {
+      subbid = { ...subbid, ...pujas[index] };
+      return subbid;
+    });
+
+    // Se envía nombre y compañía de cada persona que entró mientras estaba la subasta en marcha
+    subbid.viewers = await Promise.all(
+      subbid.viewers.map((viewer) => {
+        return User.findById(mongoose.Types.ObjectId(viewer))
+          .select("displayName company -_id")
+          .lean();
+      })
+    );
+
+    return subbid;
+  } catch (error) {
+    console.log(error);
+  }
+};
+
+const writeFile = (subbid_id) => {
+  const directory = req.body.chat_id ? req.body.chat_id : req.body.bid_id;
+  !fs.existsSync(DIR + subbid_id) && fs.mkdirSync(DIR + subbid_id);
+  fs.writeFile(DIR + subbid_id + ".xlxs", content, (err) => {
+    if (err) {
+      console.error(err);
+      return;
+    }
+    //file written successfully
+  });
 };
