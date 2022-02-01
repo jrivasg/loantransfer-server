@@ -59,17 +59,8 @@ module.exports = {
   getOneSubbid: async (req, res, next) => {
     const { bid_id, subbid_id } = req.body;
     try {
-      const { admin } = await User.findById(req.payload.aud)
-        .select("admin -_id")
-        .lean();
+      subbid = await getSubbidDetails(bid_id, subbid_id, req.payload.aud);
 
-      if (admin) {
-        // Si se es administrador se envia las pujas con el nombre y compañia de cada pujador
-        subbid = await getSubbidDetails(bid_id, subbid_id);
-      } else {
-        delete subbid["data"];
-        delete subbid.viewers;
-      }
       //console.log(subbid);
       res.status(200).json(subbid);
     } catch (error) {
@@ -106,25 +97,18 @@ module.exports = {
     const { bid_id, subbid_id } = req.query;
 
     try {
-      const isAdmin = await User.findById(req.payload.aud)
-        .select("admin -_id")
-        .lean();
-
       let workbook;
-      if (isAdmin) {
-        subbid = await getSubbidDetails(bid_id, subbid_id);
-        workbook = createReport(subbid);
-        const tempath = DIR + subbid_id;
-        !fs.existsSync(tempath) && fs.mkdirSync(tempath);
 
-        var filePath = path.join("uploads/" + subbid_id + "/report.xlsx");
+      subbid = await getSubbidDetails(bid_id, subbid_id);
+      workbook = createReport(subbid);
+      const tempath = DIR + subbid_id;
+      !fs.existsSync(tempath) && fs.mkdirSync(tempath);
 
-        await workbook.xlsx.writeFile(
-          "uploads/" + subbid_id + "/report.xlsx"
-        );
-        var readStream = fs.createReadStream(filePath);
-        readStream.pipe(res);
-      }
+      var filePath = path.join("uploads/" + subbid_id + "/report.xlsx");
+
+      await workbook.xlsx.writeFile("uploads/" + subbid_id + "/report.xlsx");
+      var readStream = fs.createReadStream(filePath);
+      readStream.pipe(res);
     } catch (error) {
       next(error);
     }
@@ -290,40 +274,47 @@ const sendNewBidEmail = async (jsonBid) => {
   aws_email.scheduleEmail(email_subject, email_message, dateSchedule);
 };
 
-const getSubbidDetails = async (bid_id, subbid_id) => {
+const getSubbidDetails = async (bid_id, subbid_id, user_id) => {
   try {
     const bid = await Bid.findById(bid_id).lean();
     let subbid = bid.bids.find((sub) => String(sub._id) === String(subbid_id));
+    const { admin } = await User.findById(user_id).select("admin -_id").lean();
 
     subbid.documents = bid.documents;
     subbid.starting_time = bid.starting_time;
     subbid.end_time = bid.end_time;
     subbid.viewers = bid.viewers;
+    subbid.seller = bid.seller;
 
-    let pujas = await Promise.all(
-      subbid.data.map(async (puja) => {
-        if (puja.from === null) return;
-        return User.findById(mongoose.Types.ObjectId(puja.from))
-          .select("displayName company -_id")
-          .lean();
-      })
-    );
-    pujas = pujas.filter((puja) => puja !== undefined);
-    subbid.data = subbid.data.filter((puja) => puja.from !== null);
+    if (admin) {
+      let pujas = await Promise.all(
+        subbid.data.map(async (puja) => {
+          if (puja.from === null) return;
+          return User.findById(mongoose.Types.ObjectId(puja.from))
+            .select("displayName company -_id")
+            .lean();
+        })
+      );
+      pujas = pujas.filter((puja) => puja !== undefined);
+      subbid.data = subbid.data.filter((puja) => puja.from !== null);
 
-    subbid.data = subbid.data.map((subbid, index) => {
-      subbid = { ...subbid, ...pujas[index] };
-      return subbid;
-    });
+      subbid.data = subbid.data.map((subbid, index) => {
+        subbid = { ...subbid, ...pujas[index] };
+        return subbid;
+      });
 
-    // Se envía nombre y compañía de cada persona que entró mientras estaba la subasta en marcha
-    subbid.viewers = await Promise.all(
-      subbid.viewers.map((viewer) => {
-        return User.findById(mongoose.Types.ObjectId(viewer))
-          .select("displayName company -_id")
-          .lean();
-      })
-    );
+      // Se envía nombre y compañía de cada persona que entró mientras estaba la subasta en marcha
+      subbid.viewers = await Promise.all(
+        subbid.viewers.map((viewer) => {
+          return User.findById(mongoose.Types.ObjectId(viewer))
+            .select("displayName company -_id")
+            .lean();
+        })
+      );
+    } else {
+      delete subbid["data"];
+      delete subbid.viewers;
+    }
 
     return subbid;
   } catch (error) {
