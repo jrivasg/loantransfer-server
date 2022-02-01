@@ -263,7 +263,7 @@ const sendNewBidEmail = async (jsonBid) => {
   });
   const email_subject = "Nueva Cartera programada para subasta";
   const emailSentInfo = await aws_email.sendEmail(
-    "jrivasgonzalez@gmail.com",
+    users,
     email_subject,
     email_message,
     "logo_loan_transfer.png"
