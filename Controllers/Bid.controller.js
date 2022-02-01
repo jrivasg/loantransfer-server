@@ -104,7 +104,7 @@ module.exports = {
 
   getReport: async (req, res, next) => {
     const { bid_id, subbid_id } = req.query;
-    console.log(req.query);
+
     try {
       const isAdmin = await User.findById(req.payload.aud)
         .select("admin -_id")
@@ -113,7 +113,7 @@ module.exports = {
       let workbook;
       if (isAdmin) {
         subbid = await getSubbidDetails(bid_id, subbid_id);
-        workbook = createReport();
+        workbook = createReport(subbid);
         const tempath = DIR + subbid_id;
         !fs.existsSync(tempath) && fs.mkdirSync(tempath);
 
