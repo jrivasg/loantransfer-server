@@ -7,7 +7,6 @@ const aws_email = require("../helpers/aws_email");
 const { createReport } = require("../helpers/Report");
 const { getHtmltoSend } = require("../Templates/useTemplate");
 var fs = require("fs");
-var getDirName = require("path").dirname;
 const DIR = "./uploads/";
 const path = require("path");
 
@@ -120,12 +119,10 @@ module.exports = {
 
         var filePath = path.join("uploads/" + subbid_id + "/report.xlsx");
 
-        const result = await workbook.xlsx.writeFile(
+        await workbook.xlsx.writeFile(
           "uploads/" + subbid_id + "/report.xlsx"
         );
-        console.log(result);
         var readStream = fs.createReadStream(filePath);
-        // We replaced all the event handlers with a simple call to readStream.pipe()
         readStream.pipe(res);
       }
     } catch (error) {
@@ -332,16 +329,4 @@ const getSubbidDetails = async (bid_id, subbid_id) => {
   } catch (error) {
     console.log(error);
   }
-};
-
-const writeFile = (subbid_id) => {
-  const directory = req.body.chat_id ? req.body.chat_id : req.body.bid_id;
-  !fs.existsSync(DIR + subbid_id) && fs.mkdirSync(DIR + subbid_id);
-  fs.writeFile(DIR + subbid_id + ".xlxs", content, (err) => {
-    if (err) {
-      console.error(err);
-      return;
-    }
-    //file written successfully
-  });
 };
