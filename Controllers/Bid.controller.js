@@ -99,7 +99,7 @@ module.exports = {
     try {
       let workbook;
 
-      subbid = await getSubbidDetails(bid_id, subbid_id);
+      subbid = await getSubbidDetails(bid_id, subbid_id, req.payload.aud);
       workbook = createReport(subbid);
       const tempath = DIR + subbid_id;
       !fs.existsSync(tempath) && fs.mkdirSync(tempath);
@@ -278,7 +278,7 @@ const getSubbidDetails = async (bid_id, subbid_id, user_id) => {
   try {
     const bid = await Bid.findById(bid_id).lean();
     let subbid = bid.bids.find((sub) => String(sub._id) === String(subbid_id));
-    const { admin } = await User.findById(user_id).select("admin -_id").lean();
+    const {admin} = await User.findById(user_id).select('admin -_id').lean();
 
     subbid.documents = bid.documents;
     subbid.starting_time = bid.starting_time;
