@@ -85,4 +85,17 @@ module.exports = {
       next(error);
     }
   },
+
+  deleteAllChats: async (req, res, next) => {
+    try {
+      //console.log(req.payload);
+      let users = await User.find().select('_id').lean();
+      users = users.map(user => user._id)
+      users = await User.updateMany({}, { chat: [] });
+      const chats = await Chat.deleteMany({})
+      res.status(200).json({ users, chats });
+    } catch (error) {
+      next(error);
+    }
+  },
 };

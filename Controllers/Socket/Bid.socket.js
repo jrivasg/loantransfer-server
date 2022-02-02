@@ -89,9 +89,8 @@ const saveSendLastBid = async (data, roomId, payload) => {
     // Creamos una nueva puja con los datos del pujador y de las cantidades y se añade al log
     const puja = {
       from: payload.aud,
-      name: `${activeUsers[payload.aud].displayName} de ${
-        activeUsers[payload.aud].company
-      }`,
+      name: `${activeUsers[payload.aud].displayName} de ${activeUsers[payload.aud].company
+        }`,
       time: new Date(),
       bid_id,
       amount: amount, // nextAmount
@@ -249,10 +248,6 @@ const finishBid = async (eachBid, room_id) => {
     return eachsubbid;
   });
 
-  // Eliminamos el objeto de la puja al finalizar
-  delete activeBids[eachBid._id];
-  console.log("Subasta finalizada");
-
   setTimeout(() => {
     // Enviamos el evento de finalización a todos los clientes conectados
     return bidnsp.in(room_id).emit(FINISHING_BID, tempArray);
@@ -284,6 +279,9 @@ const saveFinishBidData = async (eachBid) => {
         let jsonBid = JSON.parse(JSON.stringify(bid));
 
         sendWinnerEmail(jsonBid);
+        // Eliminamos el objeto de la puja al finalizar
+        delete activeBids[eachBid._id];
+        console.log("Subasta finalizada");
         /* let jsonBid = JSON.parse(JSON.stringify(bid));
           const lote = jsonBid.bids.find(
             (lote) => String(lote._id) === String(eachsubbid.subbid_id)
