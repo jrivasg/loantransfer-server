@@ -13,5 +13,6 @@ router.post("/delete", /* autJWT.verifyAccessToken, */ BidController.deleteBid);
 router.get("/report", autJWT.verifyAccessToken, BidController.getReport);
 // Lista sellers y ObjectId
 router.get("/getinfo", autJWT.verifyAccessToken, BidController.getInfo);
+router.get("/getsubbidid", autJWT.verifyAccessToken, BidController.getsubbidid);
 
 module.exports = router;

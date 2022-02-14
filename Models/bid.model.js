@@ -6,6 +6,17 @@ const BidSchema = new Schema(
     Id: { type: Number },
     title: { type: String },
     seller: { type: Schema.Types.ObjectId, ref: "User" },
+    globalIcons: [
+      {
+        _id: false,
+        icon: {
+          type: String,
+        },
+        title: {
+          type: String,
+        },
+      },
+    ],
     bids: [
       {
         reference: { type: String },
@@ -14,23 +25,9 @@ const BidSchema = new Schema(
             _id: false,
             icon: {
               type: String,
-              enum: [
-                "BankOutlined",
-                "TeamOutlined",
-                "LineChartOutlined",
-                "CalendarOutlined",
-                "UserOutlined",
-              ],
             },
             title: {
               type: String,
-              enum: [
-                "No judicializada",
-                "Mercado primario",
-                "Ticket medio 392€",
-                "DPD medio 260 días",
-                "100% cliente particular",
-              ],
             },
           },
         ],
@@ -42,6 +39,8 @@ const BidSchema = new Schema(
         accountsNumber: { type: Number },
         minimunAmount: { type: Number },
         dv: { type: Number },
+        dpd: { type: Number },
+        info: { type: String },
         mainDebt: { type: String },
         data: [
           {
@@ -57,6 +56,18 @@ const BidSchema = new Schema(
         increment: { type: Number },
         buyer: { type: Schema.Types.ObjectId, ref: "User" },
         finalAmount: { type: Number },
+        documents: [
+          {
+            fieldname: { type: String },
+            originalname: { type: String },
+            encoding: { type: String },
+            mimetype: { type: String },
+            destination: { type: String },
+            filename: { type: String },
+            path: { type: String },
+            size: { type: String },
+          },
+        ],
       },
     ],
     starting_time: { type: Date },
@@ -79,7 +90,7 @@ const BidSchema = new Schema(
     notifications: {
       created: { type: Boolean, default: false },
       start: { type: Boolean, default: false },
-      winner: { type: Boolean, default: false }
+      winner: { type: Boolean, default: false },
     },
   },
   {

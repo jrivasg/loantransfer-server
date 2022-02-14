@@ -93,6 +93,18 @@ module.exports = {
     }
   },
 
+  getsubbidid: async (req, res, next) => {
+    try {
+      const subbid_id = new mongoose.Types.ObjectId();
+
+      res.status(200).json({        
+        subbid_id,
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+
   getReport: async (req, res, next) => {
     const { bid_id, subbid_id } = req.query;
 
@@ -121,13 +133,14 @@ module.exports = {
       minimunAmount,
       totalDebt,
       principalMount,
-      icons,
+      globalIcons,
       bids,
       seller,
       starting_time,
       end_time,
     } = req.body;
 
+    console.log(req.body);
     const bidExists = await Bid.findById(_id).lean();
     if (bidExists) {
       Bid.findByIdAndUpdate(
@@ -137,7 +150,7 @@ module.exports = {
           minimunAmount,
           totalDebt,
           principalMount,
-          icons,
+          globalIcons,
           bids,
           seller,
           starting_time,
@@ -150,7 +163,7 @@ module.exports = {
 
           if (!bid.notifications.created) {
             let jsonBid = JSON.parse(JSON.stringify(bid));
-            sendNewBidEmail(jsonBid);
+            //sendNewBidEmail(jsonBid);
           }
           res.status(200).json(bid);
         }
@@ -160,6 +173,7 @@ module.exports = {
         _id,
         title,
         seller,
+        globalIcons,
         bids,
         starting_time,
         end_time,
@@ -171,7 +185,7 @@ module.exports = {
         let jsonBid = JSON.parse(JSON.stringify(bid));
         initilizeRedisBidObject(jsonBid);
 
-        sendNewBidEmail(jsonBid);
+        //sendNewBidEmail(jsonBid);
 
         res.status(200).json(bid);
       });
@@ -247,7 +261,7 @@ const sendNewBidEmail = async (jsonBid) => {
   });
   const email_subject = "Nueva Cartera programada para subasta";
   const emailSentInfo = await aws_email.sendEmail(
-    users,
+    "jrivasgonzalez@gmail.com",
     email_subject,
     email_message,
     "logo_loan_transfer.png"
@@ -278,7 +292,7 @@ const getSubbidDetails = async (bid_id, subbid_id, user_id) => {
   try {
     const bid = await Bid.findById(bid_id).lean();
     let subbid = bid.bids.find((sub) => String(sub._id) === String(subbid_id));
-    const {admin} = await User.findById(user_id).select('admin -_id').lean();
+    const { admin } = await User.findById(user_id).select("admin -_id").lean();
 
     subbid.documents = bid.documents;
     subbid.starting_time = bid.starting_time;
