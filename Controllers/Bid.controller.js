@@ -132,7 +132,7 @@ module.exports = {
   },
 
   createBid: async (req, res, next) => {
-    const {
+    let {
       _id,
       title,
       minimunAmount,
@@ -172,7 +172,7 @@ module.exports = {
 
           if (!bid.notifications.created) {
             let jsonBid = JSON.parse(JSON.stringify(bid));
-            //sendNewBidEmail(jsonBid);
+            sendNewBidEmail(jsonBid);
           }
           res.status(200).json(bid);
         }
@@ -194,7 +194,7 @@ module.exports = {
         let jsonBid = JSON.parse(JSON.stringify(bid));
         initilizeRedisBidObject(jsonBid);
 
-        //sendNewBidEmail(jsonBid);
+        sendNewBidEmail(jsonBid);
 
         res.status(200).json(bid);
       });
@@ -262,15 +262,16 @@ const sendNewBidEmail = async (jsonBid) => {
     tempTime.getHours() + 1 + Math.abs(new Date().getTimezoneOffset() / 60)
   );
 
-  const email_message = getHtmltoSend("../Templates/bid/newBid_template.hbs", {
+  //console.log("jsonBid", jsonBid);
+  const email_message = getHtmltoSend("../Templates/base_email_template.hbs", {
     bid: jsonBid,
-    id: String(jsonBid._id).slice(-6),
+    id: String(jsonBid._id).slice(jsonBid._id.length - 4, jsonBid._id.length),
     company: company.company,
     start: tempTime.toLocaleString("es-ES"),
   });
   const email_subject = "Nueva Cartera programada para subasta";
   const emailSentInfo = await aws_email.sendEmail(
-    "jrivasgonzalez@gmail.com",
+    "rivas_jose_antonio@hotmail.com",
     email_subject,
     email_message,
     "logo_loan_transfer.png"

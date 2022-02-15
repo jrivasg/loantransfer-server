@@ -215,14 +215,15 @@
                               <p
                                 style="
                                   font-family: sans-serif;
-                                  font-size: 14px;
-                                  font-weight: normal;
-                                  margin: 0;
-                                  margin-bottom: 15px;
+                                  font-size: 22px;
+                                  padding-bottom: 15px;
+                                  font-weight: bold;
+                                  display: table;
+                                  margin: 0 auto;
                                 "
                               >
-                                👋&nbsp; Welcome to Postdrop. A simple tool to
-                                help developers with HTML email.
+                                Nueva Cartera publicada
+
                               </p>
                               <p
                                 style="
@@ -233,10 +234,17 @@
                                   margin-bottom: 15px;
                                 "
                               >
-                                ✨&nbsp; HTML email templates are painful to
-                                build. So instead of spending hours or days
-                                trying to make your own, just use this template
-                                and call it a day.
+                                <!-- <span style="font-weight: bold;"> </span> -->
+                                La cartera
+                                {{id}}
+                                de
+                                <span style="font-weight: bold;">
+                                  {{company}}
+                                </span>
+                                será subastada el
+                                <span style="font-weight: bold;">{{start}}
+                                </span>
+                                en el formato subasta inglesa
                               </p>
                               <p
                                 style="
@@ -247,10 +255,7 @@
                                   margin-bottom: 15px;
                                 "
                               >
-                                ⬇️&nbsp; Add your own content then download and
-                                copy over to your codebase or ESP. Postdrop will
-                                inline the CSS for you to make sure it doesn't
-                                fall apart when it lands in your inbox.
+                                Ventajas de la cartera:
                               </p>
                               <p
                                 style="
@@ -261,9 +266,82 @@
                                   margin-bottom: 15px;
                                 "
                               >
-                                📬&nbsp; Postdrop also lets you send test emails
-                                to yourself. You just need to sign up first so
-                                we know you're not a spammer.
+                                {{#each bid.globalIcons}}
+                                  <span style="font-weight: bold;">
+                                    {{title}}</span>
+                                {{/each}}
+                              </p>
+                              <p
+                                style="
+                                  font-family: sans-serif;
+                                  font-size: 14px;
+                                  font-weight: normal;
+                                  margin: 0;
+                                  margin-bottom: 15px;
+                                "
+                              >
+                                Lotes a Subasta:
+                              </p>
+
+                              <p
+                                style="
+                                  font-family: sans-serif;
+                                  font-size: 14px;
+                                  font-weight: normal;
+                                  margin: 0;
+                                  margin-bottom: 15px;
+                                  text-align: center;
+                                "
+                              >
+                                <span style="font-weight: bold;float:left;">
+                                  Lote</span>
+                                <span
+                                  style="font-weight: bold; float:right;"
+                                >Deuda Total</span>
+                                <span
+                                  style="font-weight: bold; display: inline-block; margin:0 auto;"
+                                >
+                                  Información</span>
+                                <hr />
+                              </p>
+
+                              <p
+                                style="
+                                  font-family: sans-serif;
+                                  font-size: 14px;
+                                  font-weight: normal;
+                                  margin: 0;
+                                  margin-bottom: 15px;
+                                  text-align: center;
+                                "
+                              >
+                                {{#each bid.bids}}
+                                  <p
+                                    style="
+                                  font-family: sans-serif;
+                                  font-size: 14px;
+                                  font-weight: normal;
+                                  margin: 0;
+                                  margin-bottom: 15px;
+                                  text-align: center;
+                                "
+                                  >
+                                    <span style="font-weight: bold;float:left;">
+                                      {{reference}}</span>
+                                    <span
+                                      style="font-weight: bold; float:right;"
+                                    >{{mainDebt}}€</span>
+                                    <span
+                                      style="font-weight: bold; display: inline-block; margin:0 auto; text-align: left;"
+                                    >
+                                      <span>Deuda total:&nbsp;{{totalDebt}}
+                                      </span><br />
+                                      <span>Número de cuentas:&nbsp;{{accountsNumber}}
+                                      </span>
+                                    </span>
+                                    <hr />
+                                  </p>
+                                {{/each}}
                               </p>
                               <table
                                 role="presentation"
@@ -322,7 +400,7 @@
                                               bgcolor="#ec0867"
                                             >
                                               <a
-                                                href="/signup"
+                                                href="http://app.loan-transfer.com"
                                                 target="_blank"
                                                 style="
                                                   border: solid 1px #ec0867;
@@ -340,7 +418,7 @@
                                                   border-color: #ec0867;
                                                   color: #ffffff;
                                                 "
-                                              >Sign Up For Postdrop</a>
+                                              >Más información</a>
                                             </td>
                                           </tr>
                                         </tbody>
