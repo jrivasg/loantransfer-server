@@ -59,9 +59,14 @@ module.exports = {
   getOneSubbid: async (req, res, next) => {
     const { bid_id, subbid_id } = req.body;
     try {
-      subbid = await getSubbidDetails(bid_id, subbid_id, req.payload.aud);
+      // Pasar docs y globalicons
+      const bid = await Bid.findById(bid_id).select(
+        "-_id documents globalIcons"
+      );
+      const subbid = await getSubbidDetails(bid_id, subbid_id, req.payload.aud);
 
       //console.log(subbid);
+      //res.status(200).json({ subbid, bid });
       res.status(200).json(subbid);
     } catch (error) {
       next(error);
@@ -97,7 +102,7 @@ module.exports = {
     try {
       const subbid_id = new mongoose.Types.ObjectId();
 
-      res.status(200).json({        
+      res.status(200).json({
         subbid_id,
       });
     } catch (error) {
@@ -140,7 +145,11 @@ module.exports = {
       end_time,
     } = req.body;
 
-    console.log(req.body);
+    bids = bids.map((subbid) => {
+      delete subbid.documents;
+      return subbid;
+    });
+
     const bidExists = await Bid.findById(_id).lean();
     if (bidExists) {
       Bid.findByIdAndUpdate(
