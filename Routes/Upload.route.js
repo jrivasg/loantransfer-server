@@ -1,8 +1,6 @@
 const express = require("express");
 const router = express.Router();
 const uploadController = require("../Controllers/Upload.controller");
-const autJWT = require("../helpers/jwt_helper");
-const mongoose = require("mongoose");
 
 const fs = require("fs");
 const multer = require("multer");

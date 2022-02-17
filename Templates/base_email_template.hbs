@@ -290,16 +290,17 @@
                                   font-weight: normal;
                                   margin: 0;
                                   margin-bottom: 15px;
-                                  text-align: center;
+                                  text-align: left;
+                                  display: flex;
+                                  justify-content: space-between;
                                 "
                               >
-                                <span style="font-weight: bold;float:left;">
+                                <span style="font-weight: bold;width: 33%">
                                   Lote</span>
+                                <span style="font-weight: bold;width: 33%">Deuda
+                                  Total</span>
                                 <span
-                                  style="font-weight: bold; float:right;"
-                                >Deuda Total</span>
-                                <span
-                                  style="font-weight: bold; display: inline-block; margin:0 auto;"
+                                  style="font-weight: bold; width: 31%; margin-left: 2%"
                                 >
                                   Información</span>
                                 <hr />
@@ -323,22 +324,27 @@
                                   font-weight: normal;
                                   margin: 0;
                                   margin-bottom: 15px;
-                                  text-align: center;
+                                  text-align: left;
+                                  display: flex;
+                                  justify-content: space-between;
                                 "
                                   >
-                                    <span style="font-weight: bold;float:left;">
+                                    <span width="33%" style="width: 33%">
                                       {{reference}}</span>
-                                    <span
-                                      style="font-weight: bold; float:right;"
-                                    >{{mainDebt}}€</span>
-                                    <span
-                                      style="font-weight: bold; display: inline-block; margin:0 auto; text-align: left;"
-                                    >
+                                    <span width="33%" style="width: 33%">
                                       <span>Deuda total:&nbsp;{{totalDebt}}
                                       </span><br />
                                       <span>Número de cuentas:&nbsp;{{accountsNumber}}
                                       </span>
+                                      <span>Deuda total:&nbsp;{{totalDebt}}
+                                      </span>
+                                      <span>Deuda ppal:&nbsp;{{mainDebt}}
+                                      </span>
                                     </span>
+                                    <span
+                                      width="33%"
+                                      style="width: 31%; margin-left: 2%"
+                                    >{{mainDebt}}€</span>
                                     <hr />
                                   </p>
                                 {{/each}}

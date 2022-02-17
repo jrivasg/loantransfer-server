@@ -3,7 +3,13 @@ const schedule = require("node-schedule");
 const Job = require("../Models/job.model");
 const User = require("../Models/User.model");
 
-const sendEmail = async (toAddresses, subject, body_html, img_name) => {
+const sendEmail = async (
+  toAddresses,
+  subject,
+  body_html,
+  img_name,
+  bccAddresses
+) => {
   // Create the SMTP transport.
   let transporter = nodemailer.createTransport({
     host: "email-smtp.eu-west-1.amazonaws.com",
@@ -20,7 +26,7 @@ const sendEmail = async (toAddresses, subject, body_html, img_name) => {
     to: toAddresses,
     subject: subject,
     //cc: ccAddresses,
-    //bcc: bccAddresses,
+    bcc: bccAddresses,
     //text: body_text,
     html: body_html,
     attachments: [

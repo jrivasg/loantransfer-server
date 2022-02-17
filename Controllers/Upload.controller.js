@@ -112,7 +112,6 @@ module.exports = {
           new Bid(
             {
               _id: bid_id,
-              documents: [file],
               bids: [
                 {
                   _id: subbid_id,

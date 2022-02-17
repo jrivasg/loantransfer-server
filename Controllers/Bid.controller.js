@@ -59,10 +59,6 @@ module.exports = {
   getOneSubbid: async (req, res, next) => {
     const { bid_id, subbid_id } = req.body;
     try {
-      // Pasar docs y globalicons
-      const bid = await Bid.findById(bid_id).select(
-        "-_id documents globalIcons"
-      );
       const subbid = await getSubbidDetails(bid_id, subbid_id, req.payload.aud);
 
       //console.log(subbid);
@@ -145,13 +141,15 @@ module.exports = {
       end_time,
     } = req.body;
 
-    bids = bids.map((subbid) => {
-      delete subbid.documents;
-      return subbid;
-    });
-
     const bidExists = await Bid.findById(_id).lean();
     if (bidExists) {
+      let docs = bidExists.bids.map((lote) => lote.documents);
+      docs = docs.flat();
+      bids = bids.map((lote, index) => {
+        lote.documents = docs[index];
+        return lote;
+      });
+
       Bid.findByIdAndUpdate(
         _id,
         {
@@ -271,10 +269,11 @@ const sendNewBidEmail = async (jsonBid) => {
   });
   const email_subject = "Nueva Cartera programada para subasta";
   const emailSentInfo = await aws_email.sendEmail(
-    "rivas_jose_antonio@hotmail.com",
+    null,
     email_subject,
     email_message,
-    "logo_loan_transfer.png"
+    "logo_loan_transfer.png",
+    users
   );
 
   if (emailSentInfo.accepted.length > 0) {
@@ -304,11 +303,14 @@ const getSubbidDetails = async (bid_id, subbid_id, user_id) => {
     let subbid = bid.bids.find((sub) => String(sub._id) === String(subbid_id));
     const { admin } = await User.findById(user_id).select("admin -_id").lean();
 
-    subbid.documents = bid.documents;
+    // Pasar docs y globalicons del padre
+
+    subbid.documents = subbid.documents.concat(bid.documents);
     subbid.starting_time = bid.starting_time;
     subbid.end_time = bid.end_time;
     subbid.viewers = bid.viewers;
     subbid.seller = bid.seller;
+    subbid.icons = subbid.icons.concat(bid.globalIcons);
 
     if (admin) {
       let pujas = await Promise.all(
@@ -328,13 +330,14 @@ const getSubbidDetails = async (bid_id, subbid_id, user_id) => {
       });
 
       // Se envía nombre y compañía de cada persona que entró mientras estaba la subasta en marcha
-      subbid.viewers = await Promise.all(
+      subbid.viewers &&
+      (subbid.viewers = await Promise.all(
         subbid.viewers.map((viewer) => {
           return User.findById(mongoose.Types.ObjectId(viewer))
             .select("displayName company -_id")
             .lean();
         })
-      );
+      ));
     } else {
       delete subbid["data"];
       delete subbid.viewers;
