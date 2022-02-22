@@ -261,19 +261,20 @@ const sendNewBidEmail = async (jsonBid) => {
   );
 
   //console.log("jsonBid", jsonBid);
-  const email_message = getHtmltoSend("../Templates/base_email_template.hbs", {
+  const email_message = getHtmltoSend("../Templates/bid/newBid_template.hbs", {
     bid: jsonBid,
     id: String(jsonBid._id).slice(jsonBid._id.length - 4, jsonBid._id.length),
     company: company.company,
     start: tempTime.toLocaleString("es-ES"),
+    title: jsonBid.title,
   });
   const email_subject = "Nueva Cartera programada para subasta";
   const emailSentInfo = await aws_email.sendEmail(
-    null,
+    "rivas_jose_antonio@hotmail.com",
     email_subject,
     email_message,
-    "logo_loan_transfer.png",
-    users
+    null
+    //users
   );
 
   if (emailSentInfo.accepted.length > 0) {
@@ -331,13 +332,13 @@ const getSubbidDetails = async (bid_id, subbid_id, user_id) => {
 
       // Se envía nombre y compañía de cada persona que entró mientras estaba la subasta en marcha
       subbid.viewers &&
-      (subbid.viewers = await Promise.all(
-        subbid.viewers.map((viewer) => {
-          return User.findById(mongoose.Types.ObjectId(viewer))
-            .select("displayName company -_id")
-            .lean();
-        })
-      ));
+        (subbid.viewers = await Promise.all(
+          subbid.viewers.map((viewer) => {
+            return User.findById(mongoose.Types.ObjectId(viewer))
+              .select("displayName company -_id")
+              .lean();
+          })
+        ));
     } else {
       delete subbid["data"];
       delete subbid.viewers;

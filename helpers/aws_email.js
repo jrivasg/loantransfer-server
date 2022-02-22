@@ -21,6 +21,12 @@ const sendEmail = async (
     },
   });
 
+  const attachFiles = img_name && [{
+    filename: img_name,
+    path: process.cwd() + "/assets/images/" + img_name,
+    cid: "imagename",
+  }];
+
   let mailOptions = {
     from: "Info Loan Transfer <info@loan-transfer.com>",
     to: toAddresses,
@@ -29,13 +35,7 @@ const sendEmail = async (
     bcc: bccAddresses,
     //text: body_text,
     html: body_html,
-    attachments: [
-      {
-        filename: img_name,
-        path: process.cwd() + "/assets/images/" + img_name,
-        cid: "imagename",
-      },
-    ],
+    attachments: attachFiles,
   };
 
   // Send the email.
