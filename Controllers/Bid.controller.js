@@ -293,8 +293,8 @@ const sendNewBidEmail = async (jsonBid) => {
   }
 
   // TODO arreglar el programar envio email recordatoria subasta
-  const dateSchedule = new Date();
-  dateSchedule.setDate(dateSchedule.getDate() + 14);
+  const dateSchedule = new Date(jsonBid.starting_time);
+  dateSchedule.setDate(dateSchedule.getDate() - 1);
   aws_email.scheduleEmail(email_subject, email_message, dateSchedule);
 };
 
