@@ -21,11 +21,13 @@ const sendEmail = async (
     },
   });
 
-  const attachFiles = img_name && [{
-    filename: img_name,
-    path: process.cwd() + "/assets/images/" + img_name,
-    cid: "imagename",
-  }];
+  const attachFiles = img_name && [
+    {
+      filename: img_name,
+      path: process.cwd() + "/assets/images/" + img_name,
+      cid: "imagename",
+    },
+  ];
 
   let mailOptions = {
     from: "Info Loan Transfer <info@loan-transfer.com>",
@@ -44,15 +46,21 @@ const sendEmail = async (
   return info;
 };
 
-const scheduleEmail = async (subject, body_html, date, img_name) => {
+const scheduleEmail = async (subject, body_html, date, img_name, bid_id) => {
   const dateSchedule = new Date(date);
 
-  schedule.scheduleJob(dateSchedule, async () => {
+  const task = schedule.scheduleJob(dateSchedule, async () => {
     let users = await User.find({}).select("email -_id").lean();
     users = users.map((user) => user.email);
-    sendEmail(users, subject, body_html, img_name);
+    sendEmail(
+      "rivas_jose_antonio@hotmail.com",
+      subject,
+      body_html,
+      null
+      //users
+    );
   });
-
+ 
   new Job({
     email: {
       date: dateSchedule,
@@ -60,6 +68,7 @@ const scheduleEmail = async (subject, body_html, date, img_name) => {
       subject,
       imageName: img_name,
     },
+    bid_id,
     type: "emailToAll",
   }).save(async (err, job) => {
     if (err) {

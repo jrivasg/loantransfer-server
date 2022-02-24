@@ -292,10 +292,15 @@ const sendNewBidEmail = async (jsonBid) => {
     // TODO LOG de a quien se ha enviado
   }
 
-  // TODO arreglar el programar envio email recordatoria subasta
+  // Se programa el envío de email recordatorio
   const dateSchedule = new Date(jsonBid.starting_time);
-  dateSchedule.setDate(dateSchedule.getDate() - 1);
-  aws_email.scheduleEmail(email_subject, email_message, dateSchedule);
+  aws_email.scheduleEmail(
+    "Una subasta comienza próximamente",
+    email_message,
+    new Date(dateSchedule.getTime() - 30 * 60 * 1000),
+    null,
+    jsonBid._id
+  );
 };
 
 const getSubbidDetails = async (bid_id, subbid_id, user_id) => {
