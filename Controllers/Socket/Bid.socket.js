@@ -81,10 +81,10 @@ const saveSendLastBid = async (data, roomId, payload) => {
       return;
 
     // Le sumamos 30 segundos al tiempo actual de fin si quedan menos de 1 min
-    const endDateTime = new Date(activeBids[bid_id].endTime);
+    const endDateTime = new Date(lastBidRedis.endTime);
     let newEndDateTime;
     endDateTime.getTime() - new Date().getTime() < 1 * 60 * 1000 &&
-      (newEndDateTime = extendTimer(endDateTime, bid_id, roomId));
+      (newEndDateTime = extendTimer(endDateTime, bid_id, roomId, subbid_id));
 
     // Creamos una nueva puja con los datos del pujador y de las cantidades y se añade al log
     const puja = {
@@ -186,8 +186,8 @@ const startBid = (subbidCurrrentResult, eachBid, io, socket_id, user_id) => {
         //console.log('viwers modificado', bid.viewers);
       }
     );
-    // Se itera sobre cada lote y se comprueba se modifica la propiedad active según su fecha de inicio
-    // y fin respecto del momento actual, para mandar por el socket
+    // Se itera sobre cada lote y se comprueba se modifica la propiedad active según su
+    // fecha de inicio y fin respecto del momento actual, para mandar por el socket
     const tempArray = subbidCurrrentResult.map((eachsubbid) => {
       eachsubbid.active = active;
       eachsubbid.endTime = new Date(endTime).getTime() - new Date().getTime();
@@ -198,11 +198,64 @@ const startBid = (subbidCurrrentResult, eachBid, io, socket_id, user_id) => {
   }
 };
 
-const setFinishTimer = async (room_id, nextHourBids, newEndDateTime = null) => {
+const setFinishTimer = async (
+  room_id,
+  nextHourBids,
+  newEndDateTime = null,
+  subbid_id = null
+) => {
   nextHourBids.forEach(async (eachBid) => {
     // Se crea el objeto subasta activa si no existe para esta
     !activeBids[eachBid._id] &&
       (activeBids[eachBid._id] = { endTime: eachBid.end_time });
+
+    // Si no se recibe subbid_id se programan todos los timers de primeras
+    if (!subbid_id) {
+      // Se itera sobre cada lote para programarle un timer
+      eachBid.bid.forEach((lote) => {
+        activeBids[eachBid._id] = {
+          ...activeBids[eachBid._id],
+          [lote._id]: { endTime: eachBid.end_time },
+        };
+      });
+    } else {
+      // Existe subbid_id por lo que se quiere extender el timer de un lote concreto
+      // Si se va a extender el timer se borra el anterior
+      newEndDateTime && clearTimeout(activeBids[eachBid._id][subbid_id].finishTimer);
+
+      // Si queda tiempo para el fin de la puja, se pone un temporizador y al final del mismo 
+      // se envia la info sobre el fin de la puja si ya ha finalizado, se busca y envia directamente la info.
+      const interval = newEndDateTime
+        ? newEndDateTime.getTime() - Date.now()
+        : new Date(activeBids[eachBid._id][subbid_id].end_time).getTime() - Date.now();
+
+      if (!activeBids[eachBid._id][subbid_id]?.finishTimer || newEndDateTime) {
+        if (interval > 0) {
+          // Se guarda en memoria la fecha en la que termina la subasta si hay una nueva
+          newEndDateTime &&
+            (activeBids[eachBid._id][subbid_id].endTime = newEndDateTime);
+
+          // Programamos el timer
+          const finishTimerId = setTimeout(() => {
+            finishBid(eachBid, room_id);
+          }, interval);
+          // Guardamos la referencia del timer para borrarlo en caso de tener que extenderlo
+          activeBids[eachBid._id][subbid_id].finishTimer = finishTimerId;
+          console.log(
+            "Subasta finaliza en ",
+            minTommss(
+              activeBids[eachBid._id][subbid_id].finishTimer._idleTimeout /
+                60000
+            )
+          );
+        }
+      }
+      
+    }
+
+
+
+
 
     // Si se va a extender el timer se borra el anterior
     newEndDateTime && clearTimeout(activeBids[eachBid._id].finishTimer);
@@ -418,7 +471,7 @@ function minTommss(minutes) {
   return sign + (min < 10 ? "0" : "") + min + ":" + (sec < 10 ? "0" : "") + sec;
 }
 
-const extendTimer = (endDateTime, bid_id, roomId) => {
+const extendTimer = (endDateTime, bid_id, roomId, subbid_id = null) => {
   const newEndDateTime = new Date(endDateTime.getTime() + 30 * 1000);
 
   Bid.findByIdAndUpdate(
@@ -433,7 +486,7 @@ const extendTimer = (endDateTime, bid_id, roomId) => {
 
       const jsonBid = JSON.parse(JSON.stringify(bid));
       // Programamos nuevo finishTimer
-      setFinishTimer(roomId, [jsonBid], newEndDateTime);
+      setFinishTimer(roomId, [jsonBid], newEndDateTime, subbid_id);
     }
   );
 
