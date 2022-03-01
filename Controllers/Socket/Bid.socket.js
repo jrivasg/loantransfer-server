@@ -113,10 +113,8 @@ const saveSendLastBid = async (data, roomId, payload) => {
     bidnsp.in(roomId).emit(NEW_BID_EVENT, puja);
 
     // Guardamos en DB la puja
-    Bid.findOneAndUpdate(
-      {
-        _id: bid_id,
-      },
+    Bid.findByIdAndUpdate(
+      bid_id,
       {
         $set: {
           "bids.$[el].data": redisLog,
@@ -202,7 +200,7 @@ const startBid = (subbidCurrrentResult, eachBid, io, socket_id, user_id) => {
 
 const setFinishTimer = async (room_id, nextHourBids, newEndDateTime = null) => {
   nextHourBids.forEach(async (eachBid) => {
-    // Se crea el objeto subastra activa si no existe para esta
+    // Se crea el objeto subasta activa si no existe para esta
     !activeBids[eachBid._id] &&
       (activeBids[eachBid._id] = { endTime: eachBid.end_time });
 
