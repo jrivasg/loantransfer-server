@@ -49,7 +49,7 @@ const sendEmail = async (
 const scheduleEmail = async (subject, body_html, date, img_name, bid_id) => {
   const dateSchedule = new Date(date);
 
-  const task = schedule.scheduleJob(dateSchedule, async () => {
+  schedule.scheduleJob(dateSchedule, async () => {
     let users = await User.find({}).select("email -_id").lean();
     users = users.map((user) => user.email);
     sendEmail(
