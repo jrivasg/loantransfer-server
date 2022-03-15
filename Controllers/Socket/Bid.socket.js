@@ -212,7 +212,7 @@ const setFinishTimer = async (
     // Si no se recibe subbid_id se programan todos los timers de primeras
     if (!subbid_id) {
       // Se itera sobre cada lote para programarle un timer
-      eachBid.bid.forEach((lote) => {
+      eachBid.bids.forEach((lote) => {
         activeBids[eachBid._id] = {
           ...activeBids[eachBid._id],
           [lote._id]: { endTime: eachBid.end_time },
@@ -242,7 +242,7 @@ const setFinishTimer = async (
           // Guardamos la referencia del timer para borrarlo en caso de tener que extenderlo
           activeBids[eachBid._id][subbid_id].finishTimer = finishTimerId;
           console.log(
-            "Subasta finaliza en ",
+            `Lote ${subbid_id} finaliza en  `,
             minTommss(
               activeBids[eachBid._id][subbid_id].finishTimer._idleTimeout /
                 60000

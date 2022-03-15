@@ -293,15 +293,28 @@ const sendNewBidEmail = async (jsonBid) => {
   }
 
   // Se programa el envío de email recordatorio
+  scheduleRememberEmail({jsonBid, company, tempTime})
+};
+
+const scheduleRememberEmail = ({jsonBid, company, tempTime}) => {
   const dateSchedule = new Date(jsonBid.starting_time);
+  const email_message = getHtmltoSend("../Templates/bid/startBid_template.hbs", {
+    bid: jsonBid,
+    id: String(jsonBid._id).slice(jsonBid._id.length - 4, jsonBid._id.length),
+    company: company.company,
+    start: tempTime.toLocaleString("es-ES"),
+    title: jsonBid.title,
+  });
+  const email_subject = "Una subasta comienza próximamente";
+  
   aws_email.scheduleEmail(
-    "Una subasta comienza próximamente",
+    email_subject,
     email_message,
     new Date(dateSchedule.getTime() - 30 * 60 * 1000),
     null,
     jsonBid._id
   );
-};
+}
 
 const getSubbidDetails = async (bid_id, subbid_id, user_id) => {
   try {
