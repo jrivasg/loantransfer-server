@@ -44,19 +44,24 @@ module.exports = (io) => {
     socket.on("disconnect", (reason) => {
       // Desconectamos el socket de la room
       socket.leave(roomId);
-      // Comprobamos si tiene algun timer programado y lo eliminamos
-      activeUsers[payload.aud].startTimer &&
-        clearTimeout(activeUsers[payload.aud].startTimer);
+
       // Eliminamos el usuario del objeto de usuarios activos
       delete activeUsers[payload.aud];
     });
 
-    // Si hay subastas para empezar en la siguiente hora ponemos un temporizador,
-    // si hay alguna activa ya, se envía un mensaje con el id activo
+    // Si hay subastas activas añadimos el usuario a la lista de viewers
+    // si estas subastas no tienen timers de star y finish se programan
     const nextHourBids = await getNextHourBids();
     if (nextHourBids.length > 0) {
-      setStartTimer(io, socket.id, payload.aud, nextHourBids);
-      setFinishTimer(roomId, nextHourBids);
+      // Añadimos al usuario conectado a los que han estado viendo las subastas activas
+      addUserToActiveBids(payload.aud);
+      setStartTimer({
+        io,
+        roomId,
+        socket_id: socket.id,
+        user_id: payload.aud,
+        nextHourBids,
+      });
     }
   });
 };
@@ -84,7 +89,12 @@ const saveSendLastBid = async (data, roomId, payload) => {
     const endDateTime = new Date(lastBidRedis.endTime);
     let newEndDateTime;
     endDateTime.getTime() - new Date().getTime() < 1 * 60 * 1000 &&
-      (newEndDateTime = extendTimer(endDateTime, bid_id, roomId, subbid_id));
+      (newEndDateTime = extendTimer({
+        endDateTime,
+        bid_id,
+        roomId,
+        subbid_id,
+      }));
 
     // Creamos una nueva puja con los datos del pujador y de las cantidades y se añade al log
     const puja = {
@@ -133,224 +143,258 @@ const saveSendLastBid = async (data, roomId, payload) => {
   }
 };
 
-const setStartTimer = async (io, socket_id, user_id, nextHourBids) => {
-  // Antes de programar un timer se comprueba q no exista otro, o se borra
-  activeUsers[user_id].startTimer &&
-    clearTimeout(activeUsers[user_id].startTimer);
-  // Se itera sobre ellas para obtener sus datos y enviarlas al método startBid para iniciarla
+const setStartTimer = async ({
+  io,
+  roomId,
+  user_id,
+  socket_id,
+  nextHourBids,
+}) => {
+  // Se itera las subastas para obtener sus datos y enviarlas al método startBid para iniciarla
   nextHourBids.forEach(async (eachBid) => {
-    // Si queda tiempo para el inicio de la puja, se pone un temporizador y al final de la misma se envia la info sobre las pujas obtenida de redis
-    // Si ya ha empezado, se busca y envia directamente la info.
-    const interval = new Date(eachBid.starting_time).getTime() - Date.now();
-    //console.log('interval', interval / 1000 / 60)
-    if (interval > 0) {
-      const startTimer = setTimeout(async () => {
+    // Tiempo hasta el inicio de la subasta
+    let interval = new Date(eachBid.starting_time).getTime() - Date.now();
+    //console.log("interval", interval);
+
+    // Si existe el objeto de la subasta y tiene un start_timer programado se envía la info actual de la subasta sin
+    // programar timer o modificar info alguna y se añade al ususario a la lista de viewers
+    if (activeBids[eachBid._id]?.startTimer) {
+      setTimeout(async () => {
         //console.log('Timeout ejecutado')
         // Se obtienen los lotes y se busca en redis la info de la ultima puja, o la inicial si aun no se ha iniciado
-        const subbidCurrrentResult = await getSubbidCurrrentResult(eachBid);
-        activeUsers[user_id].startTimer = startTimer;
-        startBid(subbidCurrrentResult, eachBid, io, socket_id, user_id);
+        const redisSubbidsArray = await getArraySubbidsCurrrentResult({
+          eachBid,
+        });
+        bidnsp.to(socket_id).emit(STARTING_BID, redisSubbidsArray);
+        console.log("Mensaje inicio enviado a " + socket_id);
+        addUserToActiveBids(user_id);
       }, interval);
+
+      return;
     } else {
-      // Se obtienen los lotes y se busca en redis la info de la ultima puja, o la inicial si aun no se ha iniciado
-      const subbidCurrrentResult = await getSubbidCurrrentResult(eachBid);
-      // Activamos cada lote para que empieze
-      //console.log('puja ya comenzada')
-      startBid(subbidCurrrentResult, eachBid, io, socket_id, user_id);
+      // Si queda tiempo para el inicio de la puja, se pone un temporizador y al final de la misma se envia
+      // la info sobre las pujas obtenida de redis
+
+      // Se guarda en memoria el id del timer para no volver a ejecutar el método.
+      activeBids = {
+        [eachBid._id]: {
+          viewers: [],
+          starting_time: eachBid.starting_time,
+          end_time: eachBid.end_time,
+        },
+      };
+
+      const startTimer = setTimeout(async () => {
+        console.log("Timeout ejecutado");
+        // Se obtienen los lotes y se busca en redis la info de la ultima puja, o la inicial si aun no se ha iniciado
+        const redisSubbidsArray = await getArraySubbidsCurrrentResult({
+          eachBid,
+        });
+        startBid({ redisSubbidsArray, eachBid, roomId });
+      }, interval);
+
+      activeBids[eachBid._id].startTimer = startTimer;
     }
   });
 };
 
 // Método que envía el mensaje de startBiding a los miembros conectados a la sala
-const startBid = (subbidCurrrentResult, eachBid, io, socket_id, user_id) => {
-  const now = Date.now();
-  const startTime = new Date(eachBid.starting_time).getTime();
-  const endTime = activeBids[eachBid._id]?.endTime
-    ? activeBids[eachBid._id].endTime.getTime()
-    : new Date(eachBid.end_time).getTime();
-  const active = startTime < now && now < endTime;
+const startBid = ({ redisSubbidsArray, eachBid, roomId, socket_id }) => {
+  // Se itera sobre cada lote para crear su objeto y settear a true su propiedad active en memoria y se envía a la room
+  redisSubbidsArray.forEach((eachsubbid) => {
+    activeBids[eachBid._id] = {
+      ...activeBids[eachBid._id],
+      [eachsubbid.subbid_id]: { active: true },
+    };
+  });
 
-  // Se añade al usuario a la lista de usuarios que estan presentes durante la subasta si ésta está activa.
-  if (active) {
-    Bid.findByIdAndUpdate(
-      eachBid._id,
-      {
-        $addToSet: {
-          viewers: mongoose.Types.ObjectId(user_id),
-        },
-        active: true,
-      },
-      { new: true },
-      (err, bid) => {
-        if (err) res.status(500).json(err);
-        //console.log('viwers modificado', bid.viewers);
-      }
-    );
-    // Se itera sobre cada lote y se comprueba se modifica la propiedad active según su
-    // fecha de inicio y fin respecto del momento actual, para mandar por el socket
-    const tempArray = subbidCurrrentResult.map((eachsubbid) => {
-      eachsubbid.active = active;
-      eachsubbid.endTime = new Date(endTime).getTime() - new Date().getTime();
-      return eachsubbid;
-    });
+  bidnsp.in(roomId).emit(STARTING_BID, redisSubbidsArray);
+  console.log("startBid enviado");
 
-    return bidnsp.to(socket_id).emit(STARTING_BID, tempArray);
-  }
+  Bid.findByIdAndUpdate(
+    eachBid._id,
+    {
+      active: true,
+    },
+    async (err, bid) => {
+      if (err) res.status(500).json(err);
+    }
+  );
+
+  setInitialFinishTimer({ roomId, eachBid });
+  // Se añade los usuarios presentes al registro de viewers
+  Object.keys(activeUsers).forEach((key) => {
+    addUserToActiveBids(key);
+  });
 };
 
-const setFinishTimer = async (
+const setInitialFinishTimer = async ({ eachBid, roomId }) => {
+  if (activeBids[eachBid._id]?.finishTimer) return;
+
+  // Se programan todos los timers de primeras
+  const interval = new Date(eachBid.end_time).getTime() - Date.now();
+
+  // Se itera sobre cada lote para programarle un timer
+  eachBid.bids.forEach((lote) => {
+    if (activeBids[eachBid._id][lote._id]?.finishTimer) return;
+    // Programamos el timer para cada lote
+    const finishTimerId = setTimeout(() => {
+      finishSubBid({ eachBid, room_id: roomId, subbid_id: lote._id });
+    }, interval);
+    console.log(`InitialFinishTimer para ${lote._id} programado`);
+    activeBids[eachBid._id][lote._id] = {
+      ...activeBids[eachBid._id][lote._id],
+      endTime: eachBid.end_time,
+      finishTimer: finishTimerId,
+    };
+  });
+  activeBids[eachBid._id].finishTimer = true;
+  //console.log("activeBids", activeBids);
+};
+
+const setNewFinishTimer = async ({
   room_id,
-  nextHourBids,
-  newEndDateTime = null,
-  subbid_id = null
-) => {
-  nextHourBids.forEach(async (eachBid) => {
-    // Se crea el objeto subasta activa si no existe para esta
-    !activeBids[eachBid._id] &&
-      (activeBids[eachBid._id] = { endTime: eachBid.end_time });
+  newEndDateTime,
+  eachBid,
+  subbid_id,
+}) => {
+  // Se quiere extender el timer de un lote concreto se borra el timer anterior
+  clearTimeout(activeBids[eachBid._id][subbid_id].finishTimer);
 
-    // Si no se recibe subbid_id se programan todos los timers de primeras
-    if (!subbid_id) {
-      // Se itera sobre cada lote para programarle un timer
-      eachBid.bids.forEach((lote) => {
-        activeBids[eachBid._id] = {
-          ...activeBids[eachBid._id],
-          [lote._id]: { endTime: eachBid.end_time },
-        };
-      });
-    } else {
-      // Existe subbid_id por lo que se quiere extender el timer de un lote concreto
-      // Si se va a extender el timer se borra el anterior
-      newEndDateTime && clearTimeout(activeBids[eachBid._id][subbid_id].finishTimer);
+  const interval = newEndDateTime.getTime() - Date.now();
 
-      // Si queda tiempo para el fin de la puja, se pone un temporizador y al final del mismo 
-      // se envia la info sobre el fin de la puja si ya ha finalizado, se busca y envia directamente la info.
-      const interval = newEndDateTime
-        ? newEndDateTime.getTime() - Date.now()
-        : new Date(activeBids[eachBid._id][subbid_id].end_time).getTime() - Date.now();
+  // Se guarda en memoria la fecha en la que termina la subasta si hay una nueva
+  newEndDateTime &&
+    (activeBids[eachBid._id][subbid_id].endTime = newEndDateTime);
 
-      if (!activeBids[eachBid._id][subbid_id]?.finishTimer || newEndDateTime) {
-        if (interval > 0) {
-          // Se guarda en memoria la fecha en la que termina la subasta si hay una nueva
-          newEndDateTime &&
-            (activeBids[eachBid._id][subbid_id].endTime = newEndDateTime);
-
-          // Programamos el timer
-          const finishTimerId = setTimeout(() => {
-            finishBid(eachBid, room_id);
-          }, interval);
-          // Guardamos la referencia del timer para borrarlo en caso de tener que extenderlo
-          activeBids[eachBid._id][subbid_id].finishTimer = finishTimerId;
-          console.log(
-            `Lote ${subbid_id} finaliza en  `,
-            minTommss(
-              activeBids[eachBid._id][subbid_id].finishTimer._idleTimeout /
-                60000
-            )
-          );
-        }
-      }
-      
-    }
-
-
-
-
-
-    // Si se va a extender el timer se borra el anterior
-    newEndDateTime && clearTimeout(activeBids[eachBid._id].finishTimer);
-
-    // Si queda tiempo para el fin de la puja, se pone un temporizador y al final del mismo se envia la info sobre el fin de la puja
-    // Si ya ha finalizado, se busca y envia directamente la info.
-    const interval = newEndDateTime
-      ? newEndDateTime.getTime() - Date.now()
-      : new Date(eachBid.end_time).getTime() - Date.now();
-
-    if (!activeBids[eachBid._id]?.finishTimer || newEndDateTime) {
-      if (interval > 0) {
-        // Se guarda en memoria la fecha en la que termina la subasta si hay una nueva
-        newEndDateTime && (activeBids[eachBid._id].endTime = newEndDateTime);
-
-        // Programamos el timer
-        const finishTimerId = setTimeout(() => {
-          finishBid(eachBid, room_id);
-        }, interval);
-        // Guardamos la referencia del timer para borrarlo en caso de tener que extenderlo
-        activeBids[eachBid._id].finishTimer = finishTimerId;
-        console.log(
-          "Subasta finaliza en ",
-          minTommss(activeBids[eachBid._id].finishTimer._idleTimeout / 60000)
-        );
-      }
-    }
-  });
+  // Programamos el timer
+  const finishTimerId = setTimeout(() => {
+    finishSubBid({ eachBid, room_id, subbid_id });
+  }, interval);
+  console.log(`Timer programado para lote ${subbid_id}`);
+  // Guardamos la referencia del timer para borrarlo en caso de tener que extenderlo
+  activeBids[eachBid._id][subbid_id].finishTimer = finishTimerId;
 };
 
-const finishBid = async (eachBid, room_id) => {
-  // Guardamos la información de la subasta finalizada
-  const tempBid = await Bid.findById(eachBid._id).lean();
-  saveFinishBidData(tempBid);
+const finishSubBid = async ({ eachBid, room_id, subbid_id }) => {
+  // Guardamos la información del lote finalizado
+  const query = await Bid.find(
+    {
+      _id: eachBid._id,
+      "bids._id": subbid_id,
+    },
+    { "bids.$": 1 }
+  );
+  const subbid = query[0].bids[0];
 
-  let subbidCurrrentResult = await getSubbidCurrrentResult(tempBid);
+  saveFinishSubBidData({ eachBid, subbid });
 
-  const tempArray = subbidCurrrentResult.map((eachsubbid) => {
-    eachsubbid.finish = true;
-    eachsubbid.active = false;
-    eachsubbid.endTime = 0;
-    return eachsubbid;
+  const subbidCurrrentResult = await getSubbidCurrrentResult({
+    eachBid,
+    subbid,
   });
+
+  subbidCurrrentResult.finish = true;
+  subbidCurrrentResult.active = false;
+  subbidCurrrentResult.endTime = 0;
 
   // Eliminamos el objeto de la puja al finalizar
-  delete activeBids[eachBid._id];
-  console.log("Subasta finalizada");
+  delete activeBids[eachBid._id][subbid_id];
+  console.log(`Lote ${subbid_id} finalizado`);
 
   setTimeout(() => {
+    console.log("Evento FinishingBid enviado");
     // Enviamos el evento de finalización a todos los clientes conectados
-    return bidnsp.in(room_id).emit(FINISHING_BID, tempArray);
+    return bidnsp.in(room_id).emit(FINISHING_BID, subbidCurrrentResult);
   }, 1000);
 };
 
-const saveFinishBidData = async (eachBid) => {
+const saveFinishSubBidData = async ({ eachBid, subbid }) => {
   try {
-    const tempSubbids = eachBid.bids.map((subbid) => {
-      subbid.buyer = subbid.data[subbid.data.length - 1].from;
-      subbid.finalAmount = subbid.data[subbid.data.length - 1].amount;
-      return subbid;
-    });
-
-    Bid.findOneAndUpdate(
+    // Guardamos en DB la puja
+    Bid.findByIdAndUpdate(
+      eachBid._id,
       {
-        _id: eachBid._id,
+        $set: {
+          "bids.$[el].finish": true,
+          "bids.$[el].active": false,
+          "bids.$[el].buyer":
+            subbid.data[subbid.data.length - 1]?.from &&
+            subbid.data[subbid.data.length - 1].from,
+          "bids.$[el].finalAmount":
+            subbid.data[subbid.data.length - 1]?.amount &&
+            subbid.data[subbid.data.length - 1].amount,
+        },
       },
       {
-        bids: tempSubbids,
-        active: false,
-        finish: true,
-      },
-      {
+        arrayFilters: [{ "el._id": subbid._id }],
         new: true,
       },
       async (err, bid) => {
         if (err) res.status(500).json(err);
         let jsonBid = JSON.parse(JSON.stringify(bid));
-
-        sendWinnerEmail(jsonBid);
-        /* let jsonBid = JSON.parse(JSON.stringify(bid));
-          const lote = jsonBid.bids.find(
-            (lote) => String(lote._id) === String(eachsubbid.subbid_id)
-          );
-          sendWinnerEmail(jsonBid, lote, lastBid.from); */
+        console.log("Bid modificado", jsonBid);
+        if (isAllSubbidFinished(jsonBid)) {
+          console.log("Todas los lotes finalizados");
+          // Guardamos en DB la puja
+          Bid.findByIdAndUpdate(eachBid._id, {
+            finish: true,
+            active: false,
+          }).catch((err) => console.error(err));
+          // Si no ha habido ganador no se envía el email
+          subbid.data[subbid.data.length - 1]?.from && sendWinnerEmail(jsonBid);
+        }
       }
-    ).catch((err) => {
-      if (err) console.error(err);
-    });
+    ).catch((err) => console.error(err));
   } catch (error) {
     console.log(error);
   }
 };
 
+const getSubbidCurrrentResult = async ({ eachBid, subbid }) => {
+  let redisSubbid =
+    subbid &&
+    JSON.parse(
+      await getAsyncRedis(String(subbid._id)).catch((err) => {
+        if (err) console.error(err);
+      })
+    );
+
+  // Si no existe en redis creamos el objeto y lo setteamos
+  if (!redisSubbid) {
+    redisSubbid = [
+      {
+        from: null,
+        time: new Date(),
+        bid_id: eachBid._id,
+        amount: subbid.minimunAmount,
+        subbid_id: subbid._id,
+        active: false,
+        finish: false,
+        endTime: new Date(eachBid.end_time),
+        viewers: [],
+      },
+    ];
+
+    client.SET(
+      String(subbid._id),
+      JSON.stringify(redisSubbid),
+      (err, reply) => {
+        if (err) console.log(err.message);
+      }
+    );
+  }
+
+  // Se obtiene la última puja de cada lote y se transforma el endTime al tiempo que queda hasta el fin de la subasta
+  redisSubbid[redisSubbid.length - 1].endTime =
+    new Date(redisSubbid[redisSubbid.length - 1].endTime).getTime() -
+    new Date().getTime();
+
+  return redisSubbid;
+};
+
 // Se itera sobre los diferentes lotes y se obtiene la info de las pujas de redis
-const getSubbidCurrrentResult = async (eachBid) => {
+const getArraySubbidsCurrrentResult = async ({ eachBid }) => {
   const subbidIdArray = eachBid.bids.map((eachsubbid) =>
     String(eachsubbid._id)
   );
@@ -377,7 +421,7 @@ const getSubbidCurrrentResult = async (eachBid) => {
           bid_id: eachBid._id,
           amount: tempSubbid.minimunAmount,
           subbid_id,
-          active: false,
+          active: true,
           finish: false,
           endTime: new Date(eachBid.end_time),
           viewers: [],
@@ -396,7 +440,8 @@ const getSubbidCurrrentResult = async (eachBid) => {
     redisSubbid[redisSubbid.length - 1].endTime =
       new Date(redisSubbid[redisSubbid.length - 1].endTime).getTime() -
       new Date().getTime();
-    //console.log('redisSubbid', redisSubbid);
+    redisSubbid[redisSubbid.length - 1].active = true;
+
     redisSubbid && subbids.push(redisSubbid[redisSubbid.length - 1]);
     promises.push(subbids);
   }
@@ -471,7 +516,7 @@ function minTommss(minutes) {
   return sign + (min < 10 ? "0" : "") + min + ":" + (sec < 10 ? "0" : "") + sec;
 }
 
-const extendTimer = (endDateTime, bid_id, roomId, subbid_id = null) => {
+const extendTimer = ({ endDateTime, bid_id, roomId, subbid_id }) => {
   const newEndDateTime = new Date(endDateTime.getTime() + 30 * 1000);
 
   Bid.findByIdAndUpdate(
@@ -486,7 +531,12 @@ const extendTimer = (endDateTime, bid_id, roomId, subbid_id = null) => {
 
       const jsonBid = JSON.parse(JSON.stringify(bid));
       // Programamos nuevo finishTimer
-      setFinishTimer(roomId, [jsonBid], newEndDateTime, subbid_id);
+      setNewFinishTimer({
+        roomId,
+        eachBid: jsonBid,
+        newEndDateTime,
+        subbid_id,
+      });
     }
   );
 
@@ -499,4 +549,33 @@ const groupByWinner = (bid) => {
     (acc[winner] = acc[winner] || []).push(subbid);
     return acc;
   }, {});
+};
+
+const addUserToActiveBids = (user_id) => {
+  Object.keys(activeBids).length > 0 &&
+    Object.keys(activeBids).forEach((key) => {
+      const activeBid = activeBids[key];
+      if (activeBid.active) {
+        activeBids[key].viewers.push(user_id);
+        Bid.findByIdAndUpdate(
+          key,
+          {
+            $addToSet: {
+              viewers: mongoose.Types.ObjectId(user_id),
+            },
+            active: true,
+          },
+          { new: true },
+          (err, bid) => {
+            if (err) res.status(500).json(err);
+            //console.log('viwers modificado', bid.viewers);
+          }
+        );
+      }
+    });
+  //console.log("Subastas activas", activeBids);
+};
+
+const isAllSubbidFinished = (bid) => {
+  return bid.bids.every((subbid) => subbid.finish);
 };

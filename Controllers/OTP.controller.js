@@ -148,7 +148,7 @@ module.exports = {
             //Check if OTP is expired or not
             if (otp_instance.expiration_time > Date.now()) {
               //Check if OTP is equal to the OTP in the DB
-              if (otp === otp_instance.otp) {
+              if (otp.trim() === otp_instance.otp) {
                 // Mark OTP as verified or used
                 otp_instance.verified = true;
                 //otp_instance.save();

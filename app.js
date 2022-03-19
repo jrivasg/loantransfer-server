@@ -2,14 +2,14 @@ require("dotenv").config();
 const express = require("express");
 const fs = require("fs");
 const app = express();
-const https = require("https").createServer(
+/* const https = require("https").createServer(
   {
     key: fs.readFileSync("./privkeyloan.pem"),
     cert: fs.readFileSync("./fullchainloan.pem"),
   },
   app
-);
-//const https = require("http").createServer(app);
+); */
+const https = require("http").createServer(app);
 const logger = require("morgan");
 const createError = require("http-errors");
 const cors = require("cors");
@@ -19,7 +19,7 @@ require("./helpers/init_redis");
 
 // Prueba programar email
 //require("./helpers/sendEmail").pruebasSchedule();
-require("./helpers/scheduler").reschedulePendingJobs();
+//require("./helpers/scheduler").reschedulePendingJobs();
 
 // Configuración Socket.io
 const io = require("socket.io")(https, {
@@ -38,6 +38,20 @@ io.adapter(redisAdapter(pubClient, subClient));
 require("./Controllers/Socket/Chat.socket")(io);
 require("./Controllers/Socket/Bid.socket")(io);
 require("./Controllers/Socket/Notification.socket")(io);
+
+/* const lote = async () => {
+  const Bid = require("./Models/bid.model");
+  const subbid = await Bid.find(
+    {
+      _id: "623254c8be88d20033d863a1",
+      "bids._id": "623254c8be88d20033d863a2",
+    },
+    { "bids.$": 1 }
+  );
+  console.log("lote", subbid[0].bids[0]);
+};
+
+lote(); */
 
 // Importación de las rutas
 const {
