@@ -166,7 +166,6 @@ const setStartTimer = async ({
           eachBid,
         });
         bidnsp.to(socket_id).emit(STARTING_BID, redisSubbidsArray);
-        console.log("Mensaje inicio enviado a " + socket_id);
         addUserToActiveBids(user_id);
       }, interval);
 
@@ -185,7 +184,6 @@ const setStartTimer = async ({
       };
 
       const startTimer = setTimeout(async () => {
-        console.log("Timeout ejecutado");
         // Se obtienen los lotes y se busca en redis la info de la ultima puja, o la inicial si aun no se ha iniciado
         const redisSubbidsArray = await getArraySubbidsCurrrentResult({
           eachBid,
@@ -204,12 +202,12 @@ const startBid = ({ redisSubbidsArray, eachBid, roomId, socket_id }) => {
   redisSubbidsArray.forEach((eachsubbid) => {
     activeBids[eachBid._id] = {
       ...activeBids[eachBid._id],
+      active: true,
       [eachsubbid.subbid_id]: { active: true },
     };
   });
 
   bidnsp.in(roomId).emit(STARTING_BID, redisSubbidsArray);
-  console.log("startBid enviado");
 
   Bid.findByIdAndUpdate(
     eachBid._id,
@@ -303,7 +301,6 @@ const finishSubBid = async ({ eachBid, room_id, subbid_id }) => {
   console.log(`Lote ${subbid_id} finalizado`);
 
   setTimeout(() => {
-    console.log("Evento FinishingBid enviado");
     // Enviamos el evento de finalización a todos los clientes conectados
     return bidnsp.in(room_id).emit(FINISHING_BID, subbidCurrrentResult);
   }, 1000);
@@ -506,6 +503,14 @@ const sendWinnerEmail = async (eachBid) => {
     );
 
     console.log("Email ganador subasta enviado a ", emailSentInfo.accepted);
+
+    emailSentInfo.accepted.length > 0 &&
+      Bid.findByIdAndUpdate(
+        eachBid._id,
+        {
+          $set: { "notifications.winner": true },
+        }
+      ).catch((err) => console.error(err));
   });
 };
 
@@ -573,7 +578,6 @@ const addUserToActiveBids = (user_id) => {
         );
       }
     });
-  //console.log("Subastas activas", activeBids);
 };
 
 const isAllSubbidFinished = (bid) => {

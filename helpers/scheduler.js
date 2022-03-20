@@ -9,6 +9,7 @@ const getPendingJobs = async () => {
 };
 
 const reschedulePendingJobs = async () => {
+  // Se obtienen todas las tareas que no han sido completadas
   const jobs = await getPendingJobs();
   jobs.forEach((job) => {
     const date = new Date(job.email.date);

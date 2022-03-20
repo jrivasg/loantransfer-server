@@ -231,9 +231,6 @@ const initilizeRedisBidObject = (bid) => {
     client.SET(String(_id), JSON.stringify(puja), (err, reply) => {
       if (err) console.log(err.message);
     });
-    /* client.SET(String(bid._id), JSON.stringify({ endTime: new Date(bid.end_time) }), (err, reply) => {
-      if (err) console.log(err.message);
-    }); */
   });
 };
 
