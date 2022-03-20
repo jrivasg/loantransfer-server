@@ -548,7 +548,7 @@ const extendTimer = ({ endDateTime, bid_id, roomId, subbid_id }) => {
 
 const groupByWinner = (bid) => {
   return bid.bids.reduce((acc, subbid) => {
-    const winner = subbid.data[subbid.data.length - 1].from;
+    const winner = subbid.data[subbid.data?.length - 1]?.from;
     (acc[winner] = acc[winner] || []).push(subbid);
     return acc;
   }, {});
