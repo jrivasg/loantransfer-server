@@ -4,8 +4,8 @@ const fs = require("fs");
 const app = express();
 const https = require("https").createServer(
   {
-    key: fs.readFileSync("./privkeyloan.pem"),
-    cert: fs.readFileSync("./fullchainloan.pem"),
+    key: fs.readFileSync("./privkey.pem"),
+    cert: fs.readFileSync("./fullchain.pem"),
   },
   app
 );
