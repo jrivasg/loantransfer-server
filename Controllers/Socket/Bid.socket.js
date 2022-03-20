@@ -213,6 +213,7 @@ const startBid = ({ redisSubbidsArray, eachBid, roomId, socket_id }) => {
     eachBid._id,
     {
       active: true,
+      $set: { "bids.$[].active": true },
     },
     async (err, bid) => {
       if (err) res.status(500).json(err);
@@ -330,7 +331,7 @@ const saveFinishSubBidData = async ({ eachBid, subbid }) => {
       async (err, bid) => {
         if (err) res.status(500).json(err);
         let jsonBid = JSON.parse(JSON.stringify(bid));
-        console.log("Bid modificado", jsonBid);
+        //console.log("Bid modificado", jsonBid);
         if (isAllSubbidFinished(jsonBid)) {
           console.log("Todas los lotes finalizados");
           // Guardamos en DB la puja
@@ -505,12 +506,9 @@ const sendWinnerEmail = async (eachBid) => {
     console.log("Email ganador subasta enviado a ", emailSentInfo.accepted);
 
     emailSentInfo.accepted.length > 0 &&
-      Bid.findByIdAndUpdate(
-        eachBid._id,
-        {
-          $set: { "notifications.winner": true },
-        }
-      ).catch((err) => console.error(err));
+      Bid.findByIdAndUpdate(eachBid._id, {
+        $set: { "notifications.winner": true },
+      }).catch((err) => console.error(err));
   });
 };
 
@@ -557,27 +555,31 @@ const groupByWinner = (bid) => {
 };
 
 const addUserToActiveBids = (user_id) => {
-  Object.keys(activeBids).length > 0 &&
-    Object.keys(activeBids).forEach((key) => {
-      const activeBid = activeBids[key];
-      if (activeBid.active) {
-        activeBids[key].viewers.push(user_id);
-        Bid.findByIdAndUpdate(
-          key,
-          {
-            $addToSet: {
-              viewers: mongoose.Types.ObjectId(user_id),
+  try {
+    Object.keys(activeBids).length > 0 &&
+      Object.keys(activeBids).forEach((key) => {
+        const activeBid = activeBids[key];
+        if (activeBid.active) {
+          activeBids[key].viewers.push(user_id);
+          Bid.findByIdAndUpdate(
+            key,
+            {
+              $addToSet: {
+                viewers: mongoose.Types.ObjectId(user_id),
+              },
+              active: true,
             },
-            active: true,
-          },
-          { new: true },
-          (err, bid) => {
-            if (err) res.status(500).json(err);
-            //console.log('viwers modificado', bid.viewers);
-          }
-        );
-      }
-    });
+            { new: true },
+            (err, bid) => {
+              if (err) res.status(500).json(err);
+              //console.log('viwers modificado', bid.viewers);
+            }
+          );
+        }
+      });
+  } catch (err) {
+    console.log(err);
+  }
 };
 
 const isAllSubbidFinished = (bid) => {
