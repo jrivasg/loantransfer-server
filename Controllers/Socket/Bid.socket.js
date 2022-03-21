@@ -301,7 +301,7 @@ const finishSubBid = async ({ eachBid, roomId, subbid_id }) => {
   delete activeBids[eachBid._id][subbid_id];
 
   setTimeout(() => {
-    console.log(`Lote ${subbid_id} ==> ${FINISHING_BID} enviado`)
+    //console.log(`Lote ${subbid_id} ==> ${FINISHING_BID} enviado`)
     // Enviamos el evento de finalización a todos los clientes conectados
     return bidnsp.in(roomId).emit(FINISHING_BID, subbidCurrrentResult);
   }, 1000);
@@ -356,7 +356,10 @@ const getSubbidCurrrentResult = async ({ eachBid, subbid }) => {
       })
     );
 
-  return redisSubbid[redisSubbid.length - 1];
+  const lastbid = redisSubbid[redisSubbid.length - 1];
+  console.log('lastbid length', Object.keys(lastbid).length);
+  
+  return lastbid;
 };
 
 // Se itera sobre los diferentes lotes y se obtiene la info de las pujas de redis
