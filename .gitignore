@@ -91,3 +91,6 @@ cert-server.pem
 server.pem
 fullchainloan.pem
 privkeyloan.pem
+certs/privkeyapploan.pem
+certs/fullchainapploan.pem
+certs/NPLBroker.pem
