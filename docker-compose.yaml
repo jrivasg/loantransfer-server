@@ -1,7 +1,11 @@
 version: "3.3"
+networks:
+  internal_network:
+    external: true
 services:
   servidorloantransfer:
     image: node:lts-alpine
+    container_name: "servidorloantransfer"
     stdin_open: true
     restart: always
     expose:
@@ -20,6 +24,8 @@ services:
     links:
       - mongodbloantransfer
       - redisloantransfer
+    networks:
+      - internal_network
     depends_on:
       - mongodbloantransfer
       - redisloantransfer
@@ -28,14 +34,20 @@ services:
     container_name: "mongodbloantransfer"
     restart: always
     volumes:
-      - ./data/db:/home/aplicaciones/databases/mongodbData/mongodbSubastas
+      #- ./data/db:/home/aplicaciones/databases/mongodbData/mongodbSubastas
+      - ./data/db:/data/db
     environment:
-      MONGO_INITDB_DATABASE: "subastas_loantransfer"
+      - MONGO_DATA_DIR=/data/db
+      - MONGO_LOG_DIR=/dev/null
+  #    MONGO_INITDB_DATABASE: "subastas_loantransfer"
   #    #MONGO_INITDB_ROOT_USERNAME: user
   #    #MONGO_INITDB_ROOT_PASSWORD: pass
     ports:
       - 3400:27017
-    command: mongod --logpath=/dev/null --auth # --quiet
+    networks:
+      - internal_network
+    #command: mongod --logpath=/dev/null --auth # --quiet
+    command: "--logpath=/dev/null"
   redisloantransfer:
     container_name: "redisloantransfer"
     restart: always
@@ -45,3 +57,5 @@ services:
       - ./redis.conf:/home/aplicaciones/conf/redis.conf
     ports:
       - "6380:6379"
+    networks:
+      - internal_network
