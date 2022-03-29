@@ -87,7 +87,4 @@ rest.http
 README.md
 
 uploads/
-cert-server.pem
-server.pem
-fullchainloan.pem
-privkeyloan.pem
+certs
