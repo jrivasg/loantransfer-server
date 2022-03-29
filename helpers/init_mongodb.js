@@ -1,10 +1,8 @@
 require("dotenv").config();
 const mongoose = require("mongoose");
-const tunnel = require("tunnel-ssh");
-
-const mongoAdress = null;
 
 if (process.env.NODE_ENV === "development") {
+  const tunnel = require("tunnel-ssh");
   const ssh_config = {
     username: process.env.SSH_USER,
     host: process.env.SSH_HOST,
