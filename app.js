@@ -9,7 +9,7 @@ const server =
           key: fs.readFileSync("./certs/privkeyapploan.pem"),
           cert: fs.readFileSync("./certs/fullchainapploan.pem"),
         },
-        app.app.app
+        app
       )
     : require("http").createServer(app);
 
