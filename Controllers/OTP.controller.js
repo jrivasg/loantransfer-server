@@ -16,7 +16,7 @@ module.exports = {
 
       if (!type) return res.status(400).send({ error: "tipo no recibido" });
 
-      const user = await User.findOne({ email: email }, '_id')
+      const user = await User.findOne({ email: email }, "_id");
       //console.log('userId', user._id)
       // Generate OTP
       const otp = otpGenerator.generate(6, {
@@ -25,21 +25,27 @@ module.exports = {
         specialChars: false,
       });
       const now = new Date();
-      const expiration_time = Date.now() + (1000 * 60 * 10);
+      const expiration_time = Date.now() + 1000 * 60 * 10;
 
       // Create OTP instance in DB
       const otpEl = {
         otp: otp,
         expiration_time: expiration_time,
       };
-      client.SET(user._id ? String(user._id) : 'userID', JSON.stringify(otpEl), "EX", 10 * 60, (err, reply) => {
-        if (err) {
-          console.log(err.message);
-          //createError.InternalServerError();
-          return;
+      client.SET(
+        user._id ? String(user._id) : "userID",
+        JSON.stringify(otpEl),
+        "EX",
+        10 * 60,
+        (err, reply) => {
+          if (err) {
+            console.log(err.message);
+            //createError.InternalServerError();
+            return;
+          }
+          //console.log("OTP guardado en DB");
         }
-        //console.log("OTP guardado en DB");
-      });
+      );
 
       // Create details object containing the email and otp id
       var details = {
@@ -78,8 +84,14 @@ module.exports = {
           return res.status(400).send({ error: "Tipo incorrecto recibido" });
         }
       }
-      sendEmail(email, email_subject, email_message, 'logo_loan_transfer.png');
-      res.status(200).send({ message: 'Email envido', verification_key: encoded });
+      sendEmail({
+        toAddresses: email,
+        subject: email_subject,
+        body_html: email_message,
+      });
+      res
+        .status(200)
+        .send({ message: "Email envido", verification_key: encoded });
     } catch (err) {
       return res.status(400).send({ error: err.message });
     }
@@ -89,7 +101,7 @@ module.exports = {
       var currentdate = new Date();
       const { verification_key, otp, email } = req.body;
       //console.log(req.body);
-      const user = await User.findOne({ email: email }, '_id')
+      const user = await User.findOne({ email: email }, "_id");
       //console.log(user)
       if (!verification_key) {
         const response = {
@@ -158,9 +170,9 @@ module.exports = {
                   Details: "Código de verificación correcto",
                   email: email,
                 };
-                req.payload = response
+                req.payload = response;
                 //console.log(response)
-                next()
+                next();
               } else {
                 const response = {
                   Status: "Failure",

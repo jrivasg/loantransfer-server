@@ -98,7 +98,7 @@ const sendEmailAlert = async (data, roomId, payload) => {
   )[0];
   const { email } = await User.findById(receiver.user_id).lean();
 
-  const email_message = getHtmltoSend(
+  const body_html = getHtmltoSend(
     "../Templates/chat/message_recived_template.hbs",
     {
       message,
@@ -107,13 +107,12 @@ const sendEmailAlert = async (data, roomId, payload) => {
       company,
     }
   );
-  const email_subject = "LoanTransfer - Un usaurio desea comunicarse con usted";
-  const emailSentInfo = await aws_email.sendEmail(
-    email,
-    email_subject,
-    email_message,
-    "logo_loan_transfer.png"
-  );
+  const subject = "LoanTransfer - Un usaurio desea comunicarse con usted";
+  const emailSentInfo = await aws_email.sendEmail({
+    toAddresses: email,
+    subject,
+    body_html,
+  });
 
   emailSentInfo.accepted.length > 0 && (messageQueu[roomId] = false);
   console.log("Email de chat recibido enviado a ", emailSentInfo.accepted);

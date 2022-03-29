@@ -3,13 +3,13 @@ const schedule = require("node-schedule");
 const Job = require("../Models/job.model");
 const User = require("../Models/User.model");
 
-const sendEmail = async (
+const sendEmail = async ({
   toAddresses,
   subject,
   body_html,
   img_name,
-  bccAddresses
-) => {
+  bccAddresses,
+}) => {
   // Create the SMTP transport.
   let transporter = nodemailer.createTransport({
     host: "email-smtp.eu-west-1.amazonaws.com",
@@ -46,27 +46,35 @@ const sendEmail = async (
   return info;
 };
 
-const scheduleEmail = async (subject, body_html, date, img_name, bid_id) => {
+const scheduleEmail = async ({
+  subject,
+  body_html,
+  date,
+  bid_id,
+}) => {
   const dateSchedule = new Date(date);
 
   const task = schedule.scheduleJob(dateSchedule, async () => {
     let users = await User.find({}).select("email -_id").lean();
     users = users.map((user) => user.email);
-    sendEmail(
-      "rivas_jose_antonio@hotmail.com",
+    const toAddresses =
+      process.env.NODE_ENV === "production"
+        ? "info@loan-transfer.com"
+        : "rivas_jose_antonio@hotmail.com";
+    const bccAddresses = process.env.NODE_ENV === "production" ? users : null;
+    sendEmail({
+      toAddresses,
       subject,
       body_html,
-      null
-      //users
-    );
+      bccAddresses,
+    });
   });
- 
+
   new Job({
     email: {
       date: dateSchedule,
       html: String(body_html),
       subject,
-      imageName: img_name,
     },
     bid_id,
     type: "emailToAll",

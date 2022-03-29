@@ -1,21 +1,19 @@
 // Carga de librerias
-import express from "express";
-import morgan from "morgan";
-import cookieParser from "cookie-parser";
-import helmet from "helmet";
-
-// Inicialización de componentes/
-import "./initialSetup.js";
-import winston from "./winston_config.js";
-
-// Configuración middleware
+require("dotenv").config();
+const express = require("express");
 const app = express();
+const helmet = require("helmet");
+const cors = require("cors");
+
+// Configuración middlewares
 app.use(express.json({ limit: "50mb", extended: true }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
-app.use(cookieParser());
 app.use(helmet());
+app.use(cors());
 
 // Configuración para MORGAN
+const morgan = require("morgan");
+const winston = require("./winston_config.js");
 //morgan.token("user_id", (req) => JSON.stringify(req.headers.user_id));
 app.use(
   morgan(process.env.LOG_FORMAT || "common", {
@@ -23,27 +21,6 @@ app.use(
     stream: winston.stream,
   })
 );
-
-// Configuración para CORS
-const cors = require("cors");
-
-// Configuración Socket.io
-const io = require("socket.io")(https, {
-  cors: {
-    orgin: "*",
-  },
-});
-const { createClient } = require("redis");
-const redisAdapter = require("@socket.io/redis-adapter");
-
-const pubClient = createClient({ host: "redisloantransfer", port: 6379 });
-const subClient = pubClient.duplicate();
-io.adapter(redisAdapter(pubClient, subClient));
-
-// Importamos los diferentes sockets
-require("./Controllers/Socket/Chat.socket")(io);
-require("./Controllers/Socket/Bid.socket")(io);
-require("./Controllers/Socket/Notification.socket")(io);
 
 // Importación de las rutas
 const {
@@ -53,17 +30,29 @@ const {
   BidRoute,
   OTProute,
   UploadRoute,
-} = require("./Routes/index");
+} = require("../Routes/index");
 
-// Manejador de errores
+app.use("/auth", AuthRoute);
+app.use("/user", UserRoute);
+app.use("/chat", ChatRoute);
+app.use("/bid", BidRoute);
+app.use("/otp", OTProute);
+app.use("/upload", UploadRoute);
+
+// Configuración errores
+const createError = require("http-errors");
+app.use(async (req, res, next) => {
+  next(createError.NotFound());
+});
+
 app.use((err, req, res, next) => {
   res.status(err.status || 500);
   res.send({
     error: {
       status: err.status || 500,
-      message: err.message || 'Internal server error',
+      message: err.message,
     },
   });
 });
 
-export default app;
+module.exports = app;

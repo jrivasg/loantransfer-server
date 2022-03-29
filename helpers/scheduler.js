@@ -18,13 +18,21 @@ const reschedulePendingJobs = async () => {
       schedule.scheduleJob(date, async () => {
         let users = await User.find({}).select("email -_id").lean();
         users = users.map((user) => user.email);
-        const emailSentInfo = await aws_email.sendEmail(
-          "rivas_jose_antonio@hotmail.com", //"info@loan-transfer.com",
-          job.email.subject,
-          job.email.html,
-          null
-          //users
-        );
+
+        const toAddresses =
+        process.env.NODE_ENV === "production"
+          ? "info@loan-transfer.com"
+          : "rivas_jose_antonio@hotmail.com";
+        const bccAddresses =
+        process.env.NODE_ENV === "production"
+          ? users
+          : null;
+        const emailSentInfo = await aws_email.sendEmail({
+          toAddresses,
+          subject: job.email.subject,
+          body_html: job.email.html,          
+          bccAddresses
+        });
 
         if (emailSentInfo.accepted.length > 0) {
           console.log("Email recordatorio de cartera enviado");

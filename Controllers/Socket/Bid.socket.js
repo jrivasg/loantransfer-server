@@ -43,6 +43,7 @@ module.exports = (io) => {
     // Eventos para la desconexión
     socket.on("disconnect", (reason) => {
       // Desconectamos el socket de la room
+      console.log(socket.id + " disconnected to bid socket");
       socket.leave(roomId);
 
       // Eliminamos el usuario del objeto de usuarios activos
@@ -357,8 +358,8 @@ const getSubbidCurrrentResult = async ({ eachBid, subbid }) => {
     );
 
   const lastbid = redisSubbid[redisSubbid.length - 1];
-  console.log('lastbid length', Object.keys(lastbid).length);
-  
+  console.log("lastbid length", Object.keys(lastbid).length);
+
   return lastbid;
 };
 
@@ -458,7 +459,7 @@ const sendWinnerEmail = async (eachBid) => {
     const winner = await User.findById(key).lean();
     const company = await User.findById(eachBid.seller).select("company");
 
-    const email_message = getHtmltoSend(
+    const body_html = getHtmltoSend(
       "../Templates/bid/bid_winner_template.hbs",
       {
         bid: eachBid,
@@ -466,13 +467,12 @@ const sendWinnerEmail = async (eachBid) => {
         company: company.company,
       }
     );
-    const email_subject = "Ha ganado usted la subasta";
-    const emailSentInfo = await aws_email.sendEmail(
-      winner.email,
-      email_subject,
-      email_message,
-      "logo_loan_transfer.png"
-    );
+    const subject = "Ha ganado usted la subasta";
+    const emailSentInfo = await aws_email.sendEmail({
+      toAddresses: winner.email,
+      subject,
+      body_html,
+    });
 
     console.log("Email ganador subasta enviado a ", emailSentInfo.accepted);
 

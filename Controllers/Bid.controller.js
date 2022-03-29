@@ -1,4 +1,4 @@
-const createError = require("http-errors");
+require("dotenv").config();
 const Bid = require("../Models/bid.model");
 const User = require("../Models/User.model");
 var mongoose = require("mongoose");
@@ -258,21 +258,25 @@ const sendNewBidEmail = async (jsonBid) => {
   );
 
   //console.log("jsonBid", jsonBid);
-  const email_message = getHtmltoSend("../Templates/bid/newBid_template.hbs", {
+  const body_html = getHtmltoSend("../Templates/bid/newBid_template.hbs", {
     bid: jsonBid,
     id: String(jsonBid._id).slice(jsonBid._id.length - 4, jsonBid._id.length),
     company: company.company,
     start: tempTime.toLocaleString("es-ES"),
     title: jsonBid.title,
   });
-  const email_subject = "Nueva Cartera programada para subasta";
-  const emailSentInfo = await aws_email.sendEmail(
-    "rivas_jose_antonio@hotmail.com",
-    email_subject,
-    email_message,
-    null
-    //users
-  );
+  const subject = "Nueva Cartera programada para subasta";
+  const toAddresses =
+    process.env.NODE_ENV === "production"
+      ? "info@loan-transfer.com"
+      : "rivas_jose_antonio@hotmail.com";
+  const bccAddresses = process.env.NODE_ENV === "production" ? users : null;
+  const emailSentInfo = await aws_email.sendEmail({
+    toAddresses,
+    subject,
+    body_html,
+    bccAddresses,
+  });
 
   if (emailSentInfo.accepted.length > 0) {
     console.log("Email creación de cartera enviado");
@@ -290,28 +294,30 @@ const sendNewBidEmail = async (jsonBid) => {
   }
 
   // Se programa el envío de email recordatorio
-  scheduleRememberEmail({jsonBid, company, tempTime})
+  scheduleRememberEmail({ jsonBid, company, tempTime });
 };
 
-const scheduleRememberEmail = ({jsonBid, company, tempTime}) => {
+const scheduleRememberEmail = ({ jsonBid, company, tempTime }) => {
   const dateSchedule = new Date(jsonBid.starting_time);
-  const email_message = getHtmltoSend("../Templates/bid/startBid_template.hbs", {
-    bid: jsonBid,
-    id: String(jsonBid._id).slice(jsonBid._id.length - 4, jsonBid._id.length),
-    company: company.company,
-    start: tempTime.toLocaleString("es-ES"),
-    title: jsonBid.title,
-  });
-  const email_subject = "Una subasta comienza próximamente";
-  
-  aws_email.scheduleEmail(
-    email_subject,
-    email_message,
-    new Date(dateSchedule.getTime() - 30 * 60 * 1000),
-    null,
-    jsonBid._id
+  const email_message = getHtmltoSend(
+    "../Templates/bid/startBid_template.hbs",
+    {
+      bid: jsonBid,
+      id: String(jsonBid._id).slice(jsonBid._id.length - 4, jsonBid._id.length),
+      company: company.company,
+      start: tempTime.toLocaleString("es-ES"),
+      title: jsonBid.title,
+    }
   );
-}
+  const email_subject = "Una subasta comienza próximamente";
+
+  aws_email.scheduleEmail({
+    subject: email_subject,
+    body_html: email_message,
+    date: new Date(dateSchedule.getTime() - 30 * 60 * 1000),
+    bid_id: jsonBid._id,
+  });
+};
 
 const getSubbidDetails = async (bid_id, subbid_id, user_id) => {
   try {

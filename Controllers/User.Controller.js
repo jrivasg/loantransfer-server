@@ -23,17 +23,16 @@ module.exports = {
           return res.status(500).json(err);
         }
 
-        const email_message = getHtmltoSend(
+        const body_html = getHtmltoSend(
           "../Templates/auth/singup_template.hbs",
           {}
         );
-        const email_subject = "Ha sido dado de alta en LOAN TRANSFER";
-        const emailinfo = await aws_email.sendEmail(
-          user.email,
-          email_subject,
-          email_message,
-          "logo_loan_transfer.png"
-        );
+        const subject = "Ha sido dado de alta en LOAN TRANSFER";
+        const emailinfo = await aws_email.sendEmail({
+          toAddresses: user.email,
+          subject,
+          body_html,
+        });
 
         console.log("Email usuario creado enviado", emailinfo.accepted);
         res.status(200).json(user);
