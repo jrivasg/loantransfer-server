@@ -13,6 +13,7 @@ const jobSchema = new Schema(
       cron: { type: String },
       path: { type: String },
     },
+    bid_id: { type: String },
     completed: { type: Boolean, default: false },
     type: { type: String, enum: ["emailToAll", "backupTask", "deleteTask"] },
   },

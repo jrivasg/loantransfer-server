@@ -14,8 +14,9 @@ services:
       - ./:/development/servidorloantransfer
       - ./uploads:/home/aplicaciones/uploadsloantransfer
     working_dir: /development/servidorloantransfer
-    command: sh -c "npm install && npm install -g pm2 && pm2-runtime ecosystem.config.js"
-    #command: sh -c "npm start app.js"
+    #command: sh -c "npm install && npm install -g pm2 && pm2-runtime ecosystem.config.js --env production"
+    #command: sh -c "npm install && npm install -g pm2 && pm2-runtime ecosystem.config.js --watch --env development"
+    command: sh -c "NODE_ENV=development npm run dev"
     links:
       - mongodbloantransfer
       - redisloantransfer
@@ -30,8 +31,8 @@ services:
       - ./data/db:/home/aplicaciones/databases/mongodbData/mongodbSubastas
     environment:
       MONGO_INITDB_DATABASE: "subastas_loantransfer"
-      #MONGO_INITDB_ROOT_USERNAME: user
-      #MONGO_INITDB_ROOT_PASSWORD: pass
+  #    #MONGO_INITDB_ROOT_USERNAME: user
+  #    #MONGO_INITDB_ROOT_PASSWORD: pass
     ports:
       - 3400:27017
     command: mongod --logpath=/dev/null --auth # --quiet

@@ -1,4 +1,4 @@
-const createError = require("http-errors");
+require("dotenv").config();
 const Bid = require("../Models/bid.model");
 const User = require("../Models/User.model");
 var mongoose = require("mongoose");
@@ -231,9 +231,6 @@ const initilizeRedisBidObject = (bid) => {
     client.SET(String(_id), JSON.stringify(puja), (err, reply) => {
       if (err) console.log(err.message);
     });
-    /* client.SET(String(bid._id), JSON.stringify({ endTime: new Date(bid.end_time) }), (err, reply) => {
-      if (err) console.log(err.message);
-    }); */
   });
 };
 
@@ -261,20 +258,25 @@ const sendNewBidEmail = async (jsonBid) => {
   );
 
   //console.log("jsonBid", jsonBid);
-  const email_message = getHtmltoSend("../Templates/base_email_template.hbs", {
+  const body_html = getHtmltoSend("../Templates/bid/newBid_template.hbs", {
     bid: jsonBid,
     id: String(jsonBid._id).slice(jsonBid._id.length - 4, jsonBid._id.length),
     company: company.company,
     start: tempTime.toLocaleString("es-ES"),
+    title: jsonBid.title,
   });
-  const email_subject = "Nueva Cartera programada para subasta";
-  const emailSentInfo = await aws_email.sendEmail(
-    null,
-    email_subject,
-    email_message,
-    "logo_loan_transfer.png",
-    users
-  );
+  const subject = "Nueva Cartera programada para subasta";
+  const toAddresses =
+    process.env.NODE_ENV === "production"
+      ? "info@loan-transfer.com"
+      : "rivas_jose_antonio@hotmail.com";
+  const bccAddresses = process.env.NODE_ENV === "production" ? users : null;
+  const emailSentInfo = await aws_email.sendEmail({
+    toAddresses,
+    subject,
+    body_html,
+    bccAddresses,
+  });
 
   if (emailSentInfo.accepted.length > 0) {
     console.log("Email creación de cartera enviado");
@@ -291,10 +293,30 @@ const sendNewBidEmail = async (jsonBid) => {
     // TODO LOG de a quien se ha enviado
   }
 
-  // TODO arreglar el programar envio email recordatoria subasta
-  const dateSchedule = new Date();
-  dateSchedule.setDate(dateSchedule.getDate() + 14);
-  aws_email.scheduleEmail(email_subject, email_message, dateSchedule);
+  // Se programa el envío de email recordatorio
+  scheduleRememberEmail({ jsonBid, company, tempTime });
+};
+
+const scheduleRememberEmail = ({ jsonBid, company, tempTime }) => {
+  const dateSchedule = new Date(jsonBid.starting_time);
+  const email_message = getHtmltoSend(
+    "../Templates/bid/startBid_template.hbs",
+    {
+      bid: jsonBid,
+      id: String(jsonBid._id).slice(jsonBid._id.length - 4, jsonBid._id.length),
+      company: company.company,
+      start: tempTime.toLocaleString("es-ES"),
+      title: jsonBid.title,
+    }
+  );
+  const email_subject = "Una subasta comienza próximamente";
+
+  aws_email.scheduleEmail({
+    subject: email_subject,
+    body_html: email_message,
+    date: new Date(dateSchedule.getTime() - 30 * 60 * 1000),
+    bid_id: jsonBid._id,
+  });
 };
 
 const getSubbidDetails = async (bid_id, subbid_id, user_id) => {
@@ -331,13 +353,13 @@ const getSubbidDetails = async (bid_id, subbid_id, user_id) => {
 
       // Se envía nombre y compañía de cada persona que entró mientras estaba la subasta en marcha
       subbid.viewers &&
-      (subbid.viewers = await Promise.all(
-        subbid.viewers.map((viewer) => {
-          return User.findById(mongoose.Types.ObjectId(viewer))
-            .select("displayName company -_id")
-            .lean();
-        })
-      ));
+        (subbid.viewers = await Promise.all(
+          subbid.viewers.map((viewer) => {
+            return User.findById(mongoose.Types.ObjectId(viewer))
+              .select("displayName company -_id")
+              .lean();
+          })
+        ));
     } else {
       delete subbid["data"];
       delete subbid.viewers;

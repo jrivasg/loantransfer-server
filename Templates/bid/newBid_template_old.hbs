@@ -104,22 +104,24 @@
                 <tbody>
                   <tr>
                     <td
+                      class="align-center"
                       width="100%"
                       style="
                         font-family: sans-serif;
                         font-size: 14px;
                         vertical-align: top;
+                        text-align: center;
                       "
                       valign="top"
-                      align="left"
+                      align="center"
                     >
                       <a
-                        href="https://loan-transfer.com"
+                        href="https://postdrop.io"
                         style="color: #ec0867; text-decoration: underline"
                       ><img
-                          src="https://npl-broker-public.s3.eu-west-1.amazonaws.com/logo_loan_color.png"
-                          height="120"
-                          alt="Loan-Transfer"
+                          src="https://cdn.postdrop.io/starter-templates-v0/postdrop-logo-dark.png"
+                          height="40"
+                          alt="Postdrop"
                           style="
                             border: none;
                             -ms-interpolation-mode: bicubic;
@@ -156,8 +158,8 @@
                   visibility: hidden;
                   width: 0;
                 "
-              ><!-- This is preheader text. Some clients will show this text as a
-                preview. --></span>
+              >This is preheader text. Some clients will show this text as a
+                preview.</span>
               <table
                 role="presentation"
                 class="main"
@@ -217,28 +219,11 @@
                                   padding-bottom: 15px;
                                   font-weight: bold;
                                   display: table;
-                                  margin-bottom: 5px;
-                                  width: 100%;
-                                  text-align: center;
+                                  margin: 0 auto;
                                 "
                               >
-                                ¡Se ha registrado en LOAN TRANSFER!
+                                Nueva Cartera publicada
 
-                              </p>
-                              <p
-                                style="
-                                  font-family: sans-serif;
-                                  font-size: 16px;
-                                  font-weight: normal;
-                                  margin: 0;
-                                  margin-bottom: 15px;
-                                  text-align: center;
-                                  padding-left: 5%;
-                                  padding-right: 5%;
-                                "
-                              >
-                                Su registro en la plataforma se ha realizado con
-                                éxito
                               </p>
                               <p
                                 style="
@@ -246,48 +231,124 @@
                                   font-size: 14px;
                                   font-weight: normal;
                                   margin: 0;
-                                  padding-left: 5%;
-                                  padding-right: 5%;
+                                  margin-bottom: 15px;
+                                "
+                              >
+                                <!-- <span style="font-weight: bold;"> </span> -->
+                                La cartera
+                                {{id}}
+                                de
+                                <span style="font-weight: bold;">
+                                  {{company}}
+                                </span>
+                                será subastada el
+                                <span style="font-weight: bold;">{{start}}
+                                </span>
+                                en el formato subasta inglesa
+                              </p>
+                              <p
+                                style="
+                                  font-family: sans-serif;
+                                  font-size: 14px;
+                                  font-weight: normal;
+                                  margin: 0;
+                                  margin-bottom: 15px;
+                                "
+                              >
+                                Ventajas de la cartera:
+                              </p>
+                              <p
+                                style="
+                                  font-family: sans-serif;
+                                  font-size: 14px;
+                                  font-weight: normal;
+                                  margin: 0;
+                                  margin-bottom: 15px;
+                                "
+                              >
+                                {{#each bid.globalIcons}}
+                                  <span style="font-weight: bold;">
+                                    {{title}}</span>
+                                {{/each}}
+                              </p>
+                              <p
+                                style="
+                                  font-family: sans-serif;
+                                  font-size: 14px;
+                                  font-weight: normal;
+                                  margin: 0;
+                                  margin-bottom: 15px;
+                                "
+                              >
+                                Lotes a Subasta:
+                              </p>
+
+                              <p
+                                style="
+                                  font-family: sans-serif;
+                                  font-size: 14px;
+                                  font-weight: normal;
+                                  margin: 0;
+                                  margin-bottom: 15px;
+                                  text-align: left;
+                                  display: flex;
+                                  justify-content: space-between;
+                                "
+                              >
+                                <span style="font-weight: bold;width: 33%">
+                                  Lote</span>
+                                <span style="font-weight: bold;width: 33%">Deuda
+                                  Total</span>
+                                <span
+                                  style="font-weight: bold; width: 31%; margin-left: 2%"
+                                >
+                                  Información</span>
+                                <hr />
+                              </p>
+
+                              <p
+                                style="
+                                  font-family: sans-serif;
+                                  font-size: 14px;
+                                  font-weight: normal;
+                                  margin: 0;
                                   margin-bottom: 15px;
                                   text-align: center;
                                 "
                               >
-                                <table
-                                  role="presentation"
-                                  border="0"
-                                  cellpadding="0"
-                                  cellspacing="0"
-                                  style="
-                                  border-collapse: separate;
-                                  mso-table-lspace: 0pt;
-                                  mso-table-rspace: 0pt;                                 
-                                  padding-bottom: 5px;                                  
-                                  width: 100%;
-                                  text-align: justify
-                                  "
-                                  width="100%"
-                                >
-                                  <tbody>
-                                    <tr>
-                                      <td
-                                        style="
-                                          font-family: sans-serif;
-                                          font-size: 14px;
-                                          vertical-align: middle;
-                                          width: 50%;
-                                          "
-                                        valign="top"
-                                      >
-                                        Para acceder solo necesitará introducir
-                                        el email con el que ha sido registrado,
-                                        y un código de confirmación que se le
-                                        enviará al mismo.
-                                      </td>
-                                    </tr>
-                                  </tbody>
-                                </table>
+                                {{#each bid.bids}}
+                                  <p
+                                    style="
+                                  font-family: sans-serif;
+                                  font-size: 14px;
+                                  font-weight: normal;
+                                  margin: 0;
+                                  margin-bottom: 15px;
+                                  text-align: left;
+                                  display: flex;
+                                  justify-content: space-between;
+                                "
+                                  >
+                                    <span width="33%" style="width: 33%">
+                                      {{reference}}</span>
+                                    <span width="33%" style="width: 33%">
+                                      <span>Deuda total:&nbsp;{{totalDebt}}
+                                      </span><br />
+                                      <span>Número de cuentas:&nbsp;{{accountsNumber}}
+                                      </span>
+                                      <span>Deuda total:&nbsp;{{totalDebt}}
+                                      </span>
+                                      <span>Deuda ppal:&nbsp;{{mainDebt}}
+                                      </span>
+                                    </span>
+                                    <span
+                                      width="33%"
+                                      style="width: 31%; margin-left: 2%"
+                                    >{{mainDebt}}€</span>
+                                    <hr />
+                                  </p>
+                                {{/each}}
                               </p>
-
                               <table
                                 role="presentation"
                                 border="0"
@@ -301,7 +362,6 @@
                                   min-width: 100%;
                                   box-sizing: border-box;
                                   width: 100%;
-                                  padding-top: 25px;
                                 "
                                 width="100%"
                               >
@@ -364,7 +424,7 @@
                                                   border-color: #ec0867;
                                                   color: #ffffff;
                                                 "
-                                              >Acceder</a>
+                                              >Más información</a>
                                             </td>
                                           </tr>
                                         </tbody>

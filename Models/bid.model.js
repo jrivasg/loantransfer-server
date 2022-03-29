@@ -20,6 +20,8 @@ const BidSchema = new Schema(
     bids: [
       {
         reference: { type: String },
+        active: { type: Boolean, default: false },
+        finish: { type: Boolean, default: false },
         icons: [
           {
             _id: false,

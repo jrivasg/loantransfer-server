@@ -3,13 +3,13 @@ const schedule = require("node-schedule");
 const Job = require("../Models/job.model");
 const User = require("../Models/User.model");
 
-const sendEmail = async (
+const sendEmail = async ({
   toAddresses,
   subject,
   body_html,
   img_name,
-  bccAddresses
-) => {
+  bccAddresses,
+}) => {
   // Create the SMTP transport.
   let transporter = nodemailer.createTransport({
     host: "email-smtp.eu-west-1.amazonaws.com",
@@ -21,6 +21,14 @@ const sendEmail = async (
     },
   });
 
+  const attachFiles = img_name && [
+    {
+      filename: img_name,
+      path: process.cwd() + "/assets/images/" + img_name,
+      cid: "imagename",
+    },
+  ];
+
   let mailOptions = {
     from: "Info Loan Transfer <info@loan-transfer.com>",
     to: toAddresses,
@@ -29,13 +37,7 @@ const sendEmail = async (
     bcc: bccAddresses,
     //text: body_text,
     html: body_html,
-    attachments: [
-      {
-        filename: img_name,
-        path: process.cwd() + "/assets/images/" + img_name,
-        cid: "imagename",
-      },
-    ],
+    attachments: attachFiles,
   };
 
   // Send the email.
@@ -44,13 +46,28 @@ const sendEmail = async (
   return info;
 };
 
-const scheduleEmail = async (subject, body_html, date, img_name) => {
+const scheduleEmail = async ({
+  subject,
+  body_html,
+  date,
+  bid_id,
+}) => {
   const dateSchedule = new Date(date);
 
-  schedule.scheduleJob(dateSchedule, async () => {
+  const task = schedule.scheduleJob(dateSchedule, async () => {
     let users = await User.find({}).select("email -_id").lean();
     users = users.map((user) => user.email);
-    sendEmail(users, subject, body_html, img_name);
+    const toAddresses =
+      process.env.NODE_ENV === "production"
+        ? "info@loan-transfer.com"
+        : "rivas_jose_antonio@hotmail.com";
+    const bccAddresses = process.env.NODE_ENV === "production" ? users : null;
+    sendEmail({
+      toAddresses,
+      subject,
+      body_html,
+      bccAddresses,
+    });
   });
 
   new Job({
@@ -58,8 +75,8 @@ const scheduleEmail = async (subject, body_html, date, img_name) => {
       date: dateSchedule,
       html: String(body_html),
       subject,
-      imageName: img_name,
     },
+    bid_id,
     type: "emailToAll",
   }).save(async (err, job) => {
     if (err) {

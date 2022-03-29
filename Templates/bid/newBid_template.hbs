@@ -2,7 +2,7 @@
   <head>
     <meta name="viewport" content="width=device-width" />
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-    <title>Simple Responsive HTML Email With Button</title>
+    <title>Loan-Transfer</title>
     <style>
       @media only screen and (max-width: 620px) { table[class="body"] h1 {
       font-size: 28px !important; margin-bottom: 10px !important; }
@@ -104,24 +104,22 @@
                 <tbody>
                   <tr>
                     <td
-                      class="align-center"
                       width="100%"
                       style="
                         font-family: sans-serif;
                         font-size: 14px;
                         vertical-align: top;
-                        text-align: center;
                       "
                       valign="top"
-                      align="center"
+                      align="left"
                     >
                       <a
-                        href="https://postdrop.io"
+                        href="https://loan-transfer.com"
                         style="color: #ec0867; text-decoration: underline"
                       ><img
-                          src="https://cdn.postdrop.io/starter-templates-v0/postdrop-logo-dark.png"
-                          height="40"
-                          alt="Postdrop"
+                          src="https://npl-broker-public.s3.eu-west-1.amazonaws.com/logo_loan_color.png"
+                          height="120"
+                          alt="Loan-Transfer"
                           style="
                             border: none;
                             -ms-interpolation-mode: bicubic;
@@ -158,8 +156,8 @@
                   visibility: hidden;
                   width: 0;
                 "
-              >This is preheader text. Some clients will show this text as a
-                preview.</span>
+              ><!-- This is preheader text. Some clients will show this text as a
+                preview. --></span>
               <table
                 role="presentation"
                 class="main"
@@ -219,7 +217,9 @@
                                   padding-bottom: 15px;
                                   font-weight: bold;
                                   display: table;
-                                  margin: 0 auto;
+                                  margin-bottom: 5px;
+                                  width: 100%;
+                                  text-align: center;
                                 "
                               >
                                 Nueva Cartera publicada
@@ -236,7 +236,9 @@
                               >
                                 <!-- <span style="font-weight: bold;"> </span> -->
                                 La cartera
-                                {{id}}
+                                <span style="font-weight: bold;">
+                                  {{title}}
+                                </span>
                                 de
                                 <span style="font-weight: bold;">
                                   {{company}}
@@ -266,6 +268,7 @@
                                   margin-bottom: 15px;
                                 "
                               >
+
                                 {{#each bid.globalIcons}}
                                   <span style="font-weight: bold;">
                                     {{title}}</span>
@@ -282,30 +285,6 @@
                               >
                                 Lotes a Subasta:
                               </p>
-
-                              <p
-                                style="
-                                  font-family: sans-serif;
-                                  font-size: 14px;
-                                  font-weight: normal;
-                                  margin: 0;
-                                  margin-bottom: 15px;
-                                  text-align: left;
-                                  display: flex;
-                                  justify-content: space-between;
-                                "
-                              >
-                                <span style="font-weight: bold;width: 33%">
-                                  Lote</span>
-                                <span style="font-weight: bold;width: 33%">Deuda
-                                  Total</span>
-                                <span
-                                  style="font-weight: bold; width: 31%; margin-left: 2%"
-                                >
-                                  Información</span>
-                                <hr />
-                              </p>
-
                               <p
                                 style="
                                   font-family: sans-serif;
@@ -316,38 +295,156 @@
                                   text-align: center;
                                 "
                               >
-                                {{#each bid.bids}}
-                                  <p
-                                    style="
+                                <table
+                                  role="presentation"
+                                  border="0"
+                                  cellpadding="0"
+                                  cellspacing="0"
+                                  style="
+                                  border-collapse: separate;
+                                  mso-table-lspace: 0pt;
+                                  mso-table-rspace: 0pt;
+                                  border-bottom: 1px solid black;
+                                  padding-bottom: 5px;                                  
+                                  min-width: 100%;
+                                  width: 100%;
+                                  text-align: center
+                                  "
+                                  width="100%"
+                                >
+                                  <tbody>
+                                    <tr>
+                                      <td
+                                        style="
+                                          font-family: sans-serif;
+                                          font-size: 16px;
+                                          vertical-align: top;
+                                          width: 30%;
+                                          "
+                                        valign="top"
+                                      >
+                                        <span
+                                          style="font-weight: bold;width: 33%"
+                                        >Lote</span>
+                                      </td>
+                                      <td
+                                        style="
+                                          font-family: sans-serif;
+                                          font-size: 16px;
+                                          vertical-align: top;
+                                          width: 40%;
+                                          "
+                                        valign="top"
+                                      >
+                                        <span
+                                          style="font-weight: bold; width: 31%; margin-left: 2%"
+                                        > Información</span>
+                                      </td>
+                                      <td
+                                        style="
+                                          font-family: sans-serif;
+                                          font-size: 16px;
+                                          vertical-align: top;
+                                          width: 30%;
+                                          "
+                                        valign="top"
+                                      >
+                                        <span
+                                          style="font-weight: bold;width: 33%"
+                                        >DeudaTotal</span>
+                                      </td>
+                                    </tr>
+                                  </tbody>
+                                </table>
+                              </p>
+                              <p
+                                style="
                                   font-family: sans-serif;
                                   font-size: 14px;
                                   font-weight: normal;
                                   margin: 0;
                                   margin-bottom: 15px;
-                                  text-align: left;
-                                  display: flex;
-                                  justify-content: space-between;
+                                  text-align: center;
                                 "
-                                  >
-                                    <span width="33%" style="width: 33%">
-                                      {{reference}}</span>
-                                    <span width="33%" style="width: 33%">
-                                      <span>Deuda total:&nbsp;{{totalDebt}}
-                                      </span><br />
-                                      <span>Número de cuentas:&nbsp;{{accountsNumber}}
-                                      </span>
-                                      <span>Deuda total:&nbsp;{{totalDebt}}
-                                      </span>
-                                      <span>Deuda ppal:&nbsp;{{mainDebt}}
-                                      </span>
-                                    </span>
-                                    <span
-                                      width="33%"
-                                      style="width: 31%; margin-left: 2%"
-                                    >{{mainDebt}}€</span>
-                                    <hr />
-                                  </p>
-                                {{/each}}
+                              >
+                                <table
+                                  role="presentation"
+                                  border="0"
+                                  cellpadding="0"
+                                  cellspacing="0"
+                                  style="
+                                  border-collapse: separate;
+                                  mso-table-lspace: 0pt;
+                                  mso-table-rspace: 0pt;
+                                  min-width: 100%;
+                                  width: 100%;
+                                  text-align: center;                                  
+                                  "
+                                  width="100%"
+                                >
+                                  <tbody>
+                                    {{#each bid.bids}}
+                                      <tr>
+                                        <td
+                                          style="
+                                          font-family: sans-serif;
+                                          font-size: 14px;
+                                          vertical-align: top;
+                                          line-height: 20px;
+                                          padding-top: 10px;
+                                          padding-bottom: 15px;
+                                          width: 30%;
+                                          border-bottom: 1px solid gray
+                                          "
+                                          valign="top"
+                                        >
+                                          <span>
+                                            {{reference}}</span>
+                                        </td>
+                                        <td
+                                          style="
+                                          font-family: sans-serif;
+                                          font-size: 12px;
+                                          vertical-align: top;
+                                          line-height: 20px;
+                                          padding-top: 10px;
+                                          padding-bottom: 15px;
+                                          width: 38%;
+                                          margin-left: 1%;
+                                          margin-right: 1%;
+                                          border-bottom: 1px solid gray;                                          
+                                          "
+                                          valign="top"
+                                        >
+                                          <span>Nº cuentas:&nbsp;{{accountsNumber}}
+                                          </span><br />
+                                          <span>Deuda ppal:&nbsp;{{mainDebt}}€
+                                          </span>
+
+                                        </td>
+                                        <td
+                                          style="
+                                          font-family: sans-serif;
+                                          font-size: 14px;
+                                          vertical-align: top;
+                                          width: 30%;
+                                          border-bottom: 1px solid gray;
+                                          line-height: 20px;
+                                          padding-top: 10px;
+                                          padding-bottom: 15px;
+                                          "
+                                          valign="top"
+                                        >
+                                          <span>{{totalDebt}}€</span>
+
+                                        </td>
+
+                                      </tr>
+                                    {{/each}}
+
+                                  </tbody>
+                                </table>
+
                               </p>
                               <table
                                 role="presentation"
@@ -362,6 +459,7 @@
                                   min-width: 100%;
                                   box-sizing: border-box;
                                   width: 100%;
+                                  padding-top: 25px;
                                 "
                                 width="100%"
                               >
@@ -530,7 +628,7 @@
                         <br />
                         <br />
                         <a
-                          href="https://postdrop.io"
+                          href=""
                           style="
                             text-decoration: underline;
                             color: #9a9ea6;
