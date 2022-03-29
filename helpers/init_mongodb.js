@@ -27,7 +27,7 @@ if (process.env.NODE_ENV === "development") {
 
 process.env.NODE_ENV === "production" &&
   mongoose
-    .connect(process.env.MONGODB_PRO, {
+    .connect(process.env.MONGODB_PROD, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
       useFindAndModify: false,
