@@ -16,7 +16,7 @@ const reschedulePendingJobs = async () => {
 
     if (job.type === "emailToAll" && date.getTime() > new Date().getTime()) {
       schedule.scheduleJob(date, async () => {
-        let users = await User.find({}).select("email -_id").lean();
+        let users = await User.find({ emailVerified: false }).select("email -_id").lean();
         users = users.map((user) => user.email);
 
         const toAddresses =

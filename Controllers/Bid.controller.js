@@ -250,7 +250,9 @@ const compare = (a, b) => {
 const sendNewBidEmail = async (jsonBid) => {
   // Obtención de datos para envío de nueva y subasta y programar envío de recordatorio
   const company = await User.findById(jsonBid.seller).select("company");
-  let users = await User.find({}).select("email -_id").lean();
+  let users = await User.find({ emailVerified: false })
+    .select("email -_id")
+    .lean();
   users = users.map((user) => user.email);
   const tempTime = new Date(jsonBid.starting_time);
   tempTime.setHours(
@@ -299,6 +301,11 @@ const sendNewBidEmail = async (jsonBid) => {
 
 const scheduleRememberEmail = ({ jsonBid, company, tempTime }) => {
   const dateSchedule = new Date(jsonBid.starting_time);
+
+  if (dateSchedule.getTime() - new Date().getTime() < 2 * 60 * 60 * 1000)
+    return;
+  console.log("Recordatorio de email programado");
+
   const email_message = getHtmltoSend(
     "../Templates/bid/startBid_template.hbs",
     {

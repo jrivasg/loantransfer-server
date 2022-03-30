@@ -4,7 +4,7 @@ module.exports = {
       script: "app.js",
       // Delay between restart
       watch_delay: 1000,
-      ignore_watch: ["node_modules", "uploads", ".git"],
+      ignore_watch: ["node_modules", "uploads", ".git", "data", "logs"],
       env_development: {
         NODE_ENV: "development",
       },
