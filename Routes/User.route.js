@@ -3,11 +3,12 @@ const router = express.Router();
 const UserController = require("../Controllers/User.Controller");
 const autJWT = require("../helpers/jwt_helper");
 
-router.get("/acountinfo", autJWT.verifyAccessToken, UserController.getAccountInfo);
-router.post(
-  "/create",
+router.get(
+  "/acountinfo",
   autJWT.verifyAccessToken,
-  UserController.createUSer
+  UserController.getAccountInfo
 );
+router.post("/create", autJWT.verifyAccessToken, UserController.createUSer);
+router.put("/edit", autJWT.verifyAccessToken, UserController.editUser);
 
 module.exports = router;
