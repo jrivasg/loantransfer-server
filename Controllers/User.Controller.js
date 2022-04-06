@@ -44,10 +44,7 @@ module.exports = {
   editUser: async (req, res, next) => {
     try {
       const user = req.body;
-      User.findByIdAndUpdate(
-        user._id,
-        user
-      )(async (err, user) => {
+      User.findByIdAndUpdate(user._id, user, async (err, user) => {
         if (err) {
           console.log(err);
           return res.status(500).json(err);
