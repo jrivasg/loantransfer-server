@@ -254,17 +254,14 @@ const sendNewBidEmail = async (jsonBid) => {
     .select("email -_id")
     .lean();
   users = users.map((user) => user.email);
-  const tempTime = new Date(jsonBid.starting_time);
-  tempTime.setHours(
-    tempTime.getHours() + 1 + Math.abs(new Date().getTimezoneOffset() / 60)
-  );
+  const tempTime = new Date(jsonBid.starting_time).toLocaleString("es-ES", {timeZone: "Europe/Madrid"});
 
   //console.log("jsonBid", jsonBid);
   const body_html = getHtmltoSend("../Templates/bid/newBid_template.hbs", {
     bid: jsonBid,
     id: String(jsonBid._id).slice(jsonBid._id.length - 4, jsonBid._id.length),
     company: company.company,
-    start: tempTime.toLocaleString("es-ES"),
+    start: tempTime,
     title: jsonBid.title,
   });
   const subject = "Nueva Cartera programada para subasta";
@@ -312,7 +309,7 @@ const scheduleRememberEmail = ({ jsonBid, company, tempTime }) => {
       bid: jsonBid,
       id: String(jsonBid._id).slice(jsonBid._id.length - 4, jsonBid._id.length),
       company: company.company,
-      start: tempTime.toLocaleString("es-ES"),
+      start: tempTime,
       title: jsonBid.title,
     }
   );
