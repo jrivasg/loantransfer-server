@@ -2,133 +2,69 @@ const Bid = require("../Models/bid.model");
 const Chat = require("../Models/chat.model");
 const fileSystem = require("fs");
 const path = require("path");
+const { promisify } = require("util");
+const client = require("../helpers/init_redis");
+const getAsyncRedis = promisify(client.get).bind(client);
 
 module.exports = {
-  savefiles: async (req, res) => {
+  savefiles: async (req, res, next) => {
     const { bid_id, chat_id, subbid_id } = req.body;
     console.log(req.body);
 
-    if (bid_id && !subbid_id)
-      req.files.forEach(async (file) => {
-        const bidExists = await Bid.findById(bid_id).lean();
-        if (bidExists) {
-          Bid.findByIdAndUpdate(
-            bid_id,
-            {
-              $push: { documents: file },
-            },
+    try {
+      // Se ha compartido un archivo en un chat
+      chat_id &&
+        req.files.forEach((file) => {
+          Chat.findByIdAndUpdate(
+            chat_id,
+            { $push: { documents: file } },
             { new: true },
-            (err, bid) => {
+            (err, chat) => {
               if (err) res.status(500).json(err);
-              const doc = bid.documents[bid.documents.length - 1];
-              res.status(200).json({ message: "Archivo/s guardado/s", bid });
+              //console.log(chat)
+              const doc = chat.documents[chat.documents.length - 1];
+              res.status(200).json({
+                message: "Archivo/s guardado/s",
+                doc_id: doc._id,
+                mymetype: doc.mimetype,
+                name: doc.originalname,
+              });
             }
           );
-        } else {
-          new Bid({
-            _id: bid_id,
-            documents: [file],
-          }).save((err, bid) => {
-            if (err) {
-              console.log(err);
-              return res.status(500).json(err);
-            }
-            res.status(200).json({ message: "Archivo/s guardado/s", bid });
-          });
-        }
-      });
-    if (chat_id)
-      req.files.forEach((file) => {
-        Chat.findByIdAndUpdate(
-          chat_id,
-          { $push: { documents: file } },
-          { new: true },
-          (err, chat) => {
-            if (err) res.status(500).json(err);
-            //console.log(chat)
-            const doc = chat.documents[chat.documents.length - 1];
-            res.status(200).json({
-              message: "Archivo/s guardado/s",
-              doc_id: doc._id,
-              mymetype: doc.mimetype,
-              name: doc.originalname,
-            });
-          }
+        });
+
+      // Recuperamos el objeto de creación de subasta de redis
+      const bidCreationObject =
+        (bid_id || subbid_id) &&
+        JSON.parse(
+          await getAsyncRedis(`bidCreationObject-${req.payload.aud}`).catch(
+            (err) => console.error(err)
+          )
         );
-      });
-    if (bid_id && subbid_id) {
-      req.files.forEach(async (file) => {
-        const bid = await Bid.findById(bid_id).lean();
-        let subbid;
-        bid &&
-          (subbid = bid.bids.find(
-            (sub) => String(sub._id) === String(subbid_id)
-          ));
-        if (bid && subbid) {
-          Bid.findOneAndUpdate(
-            {
-              _id: bid_id,
-            },
-            {
-              $push: {
-                "bids.$[el].documents": file,
-              },
-            },
-            {
-              arrayFilters: [{ "el._id": subbid_id }],
-              new: true,
-            },
-            async (err, bid) => {
-              if (err) {
-                console.log(err);
-                return res.status(500).json(err);
-              }
-              res.status(200).json({ message: "Archivo/s guardado/s", bid });
-            }
-          );
-        } else if (bid && !subbid) {
-          Bid.findOneAndUpdate(
-            {
-              _id: bid_id,
-            },
-            {
-              bids: [
-                {
-                  _id: subbid_id,
-                  documents: [file],
-                },
-              ],
-            },
-            { new: true },
-            async (err, bid) => {
-              if (err) {
-                console.log(err);
-                return res.status(500).json(err);
-              }
-              res.status(200).json({ message: "Archivo/s guardado/s", bid });
-            }
-          );
-        } else if (!bid && !subbid) {
-          new Bid(
-            {
-              _id: bid_id,
-              bids: [
-                {
-                  _id: subbid_id,
-                  documents: [file],
-                },
-              ],
-            },
-            { new: true }
-          ).save((err, bid) => {
-            if (err) {
-              console.log(err);
-              return res.status(500).json(err);
-            }
-            res.status(200).json({ message: "Archivo/s guardado/s", bid });
-          });
+
+      // Si existe el id de cartera pero no el de lote añadimos o creamos los documentos de la cartera
+      bid_id &&
+        !subbid_id &&
+        req.files.forEach(async (file) => {
+          (bidCreationObject.documents ??= []).push(file);
+        });
+
+      // Si existen id de cartera y lote, es que estamos guardando archivos para un lote, se crea o añade
+      bid_id &&
+        subbid_id &&
+        req.files.forEach(async (file) =>
+          (bidCreationObject[subbid_id].documents ??= []).push(file)
+        );
+
+      client.SET(
+        `bidCreationObject-${req.payload.aud}`,
+        JSON.stringify(bidCreationObject),
+        (err, reply) => {
+          if (err) console.log(err.message);
         }
-      });
+      );
+    } catch (error) {
+      next(error);
     }
   },
   getAllBidFiles: async (req, res) => {

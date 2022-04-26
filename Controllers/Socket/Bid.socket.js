@@ -340,6 +340,8 @@ const saveFinishSubBidData = async ({ eachBid, subbid }) => {
           }).catch((err) => console.error(err));
           // Si no ha habido ganador no se envía el email
           subbid.data[subbid.data.length - 1]?.from && sendWinnerEmail(jsonBid);
+          // Se elimina el objeto temporal de la subasta 
+          delete activeBids[eachBid._id]
         }
       }
     ).catch((err) => console.error(err));

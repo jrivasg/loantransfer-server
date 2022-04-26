@@ -2,7 +2,9 @@ require("dotenv").config();
 const Bid = require("../Models/bid.model");
 const User = require("../Models/User.model");
 var mongoose = require("mongoose");
+const { promisify } = require("util");
 const client = require("../helpers/init_redis");
+const getAsyncRedis = promisify(client.get).bind(client);
 const aws_email = require("../helpers/aws_email");
 const { createReport } = require("../helpers/Report");
 const { getHtmltoSend } = require("../Templates/useTemplate");
@@ -14,7 +16,7 @@ module.exports = {
   getAll: async (req, res, next) => {
     try {
       //console.log(req.payload);
-      const bid = await Bid.find().lean();
+      const bid = await Bid.find({ created: true }).lean();
       bid.sort(compare);
       res.status(200).json(bid);
     } catch (error) {
@@ -46,6 +48,7 @@ module.exports = {
       const bid = await Bid.find({
         starting_time: { $gte: yesterday, $lte: endTime },
         finish: false,
+        created: true,
       }).lean();
 
       bid.sort(compare);
@@ -84,7 +87,13 @@ module.exports = {
     try {
       const users = await User.find().lean();
       const _id = new mongoose.Types.ObjectId();
-
+      client.SET(
+        `bidCreationObject-${req.payload.aud}`,
+        JSON.stringify({ id: _id }),
+        (err, reply) => {
+          if (err) console.log(err.message);
+        }
+      );
       res.status(200).json({
         users,
         _id,
@@ -95,13 +104,33 @@ module.exports = {
   },
 
   getsubbidid: async (req, res, next) => {
+    console.log(req.payload.aud)
     try {
       const subbid_id = new mongoose.Types.ObjectId();
-
+      const bidCreationObject = JSON.parse(
+        await getAsyncRedis(`bidCreationObject-${req.payload.aud}`).catch((err) =>
+          console.error(err)
+        )
+      );
+      // copmprobamos si hay algun objeto de lote vacio, quiere decir que ese
+      // lote no se ha seguido creando y lo borramos antes de añadir un nuevo lote
+      removeEmptyObjects(bidCreationObject);
+      // Se  añade al array de ids el nuevo id creado para el lote y se crea su objeto
+      (bidCreationObject.subbids ??= []).push(subbid_id);
+      bidCreationObject[subbid_id] = {};
+      //console.log('bidCreationObject', bidCreationObject)
+      client.SET(
+        `bidCreationObject-${req.payload.aud}`,
+        JSON.stringify(bidCreationObject),
+        (err, reply) => {
+          if (err) console.log(err.message);
+        }
+      );
       res.status(200).json({
         subbid_id,
       });
     } catch (error) {
+      console.log(error);
       next(error);
     }
   },
@@ -254,7 +283,9 @@ const sendNewBidEmail = async (jsonBid) => {
     .select("email -_id")
     .lean();
   users = users.map((user) => user.email);
-  const tempTime = new Date(jsonBid.starting_time).toLocaleString("es-ES", {timeZone: "Europe/Madrid"});
+  const tempTime = new Date(jsonBid.starting_time).toLocaleString("es-ES", {
+    timeZone: "Europe/Madrid",
+  });
 
   //console.log("jsonBid", jsonBid);
   const body_html = getHtmltoSend("../Templates/bid/newBid_template.hbs", {
@@ -374,3 +405,22 @@ const getSubbidDetails = async (bid_id, subbid_id, user_id) => {
     console.log(error);
   }
 };
+
+const removeEmptyObjects = (bidCreationObject) => {
+  // Si alguno de los ids contenidos en bidCreationObject.subbids contiene un objeto vacio
+  // se borra ese objeto y se saca su id del array
+  bidCreationObject.subbids?.forEach((subbid_id) => {
+    if (Object.keys(bidCreationObject[subbid_id])?.length === 0) {
+      delete bidCreationObject[subbid_id];
+      bidCreationObject.subbids = bidCreationObject.subbids.filter(
+        (id) => id !== subbid_id
+      );
+    }
+  });
+};
+/* 
+TODO
+- Añadir atributo de estado creacion para no enviarlo en la lista de subastas ni historial
+- Cron para eliminar las creaciones a medias
+- Crear la subasta completamente con todos sus atributos
+*/

@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const uploadController = require("../Controllers/Upload.controller");
+const autJWT = require("../helpers/jwt_helper");
 
 const fs = require("fs");
 const multer = require("multer");
@@ -20,8 +21,7 @@ var storage = multer.diskStorage({
 });
 
 var upload = multer({ storage: storage });
-
-router.post("/savedocuments", upload.array("docs"), uploadController.savefiles);
+router.post("/savedocuments", [autJWT.verifyAccessToken, upload.array("docs") ], uploadController.savefiles);
 router.get("/document", uploadController.getFile);
 router.post("/getAll", uploadController.getAllBidFiles);
 //router.delete("/deldocument", /* autJWT.verifyToken, */ uploadController.deleteFile);
