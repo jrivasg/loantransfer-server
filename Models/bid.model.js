@@ -6,7 +6,6 @@ const BidSchema = new Schema(
     Id: { type: Number },
     title: { type: String },
     seller: { type: Schema.Types.ObjectId, ref: "User" },
-    created:  { type: Boolean, default: false },
     globalIcons: [
       {
         _id: false,

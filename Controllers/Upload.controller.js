@@ -63,6 +63,8 @@ module.exports = {
           if (err) console.log(err.message);
         }
       );
+
+      res.status(200).json({ message: "Archivo/s guardado/s" });
     } catch (error) {
       next(error);
     }
@@ -88,6 +90,8 @@ module.exports = {
           return res.status(500).json(err);
         });
       doc = bid.documents.find((doc) => String(doc._id) === String(doc_id));
+      // Si no existe doc es un documento de un lote
+      !doc && (doc = findSubbidDoc({ doc_id, bid }));
     }
     if (chat_id) {
       const chat = await Chat.findById(chat_id)
@@ -130,4 +134,13 @@ module.exports = {
       );
     });
   },
+};
+
+const findSubbidDoc = ({ doc_id, bid }) => {
+  let doc;
+  for (const subbid of bid.bids) {
+    doc = subbid.documents.find((doc) => String(doc._id) === String(doc_id));
+    if (doc) break;
+  }
+  return doc;
 };

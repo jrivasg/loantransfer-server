@@ -16,7 +16,7 @@ module.exports = {
   getAll: async (req, res, next) => {
     try {
       //console.log(req.payload);
-      const bid = await Bid.find({ created: true }).lean();
+      const bid = await Bid.find().lean();
       bid.sort(compare);
       res.status(200).json(bid);
     } catch (error) {
@@ -48,7 +48,6 @@ module.exports = {
       const bid = await Bid.find({
         starting_time: { $gte: yesterday, $lte: endTime },
         finish: false,
-        created: true,
       }).lean();
 
       bid.sort(compare);
@@ -87,6 +86,7 @@ module.exports = {
     try {
       const users = await User.find().lean();
       const _id = new mongoose.Types.ObjectId();
+
       client.SET(
         `bidCreationObject-${req.payload.aud}`,
         JSON.stringify({ id: _id }),
@@ -104,15 +104,15 @@ module.exports = {
   },
 
   getsubbidid: async (req, res, next) => {
-    console.log(req.payload.aud)
+    console.log(req.payload.aud);
     try {
       const subbid_id = new mongoose.Types.ObjectId();
       const bidCreationObject = JSON.parse(
-        await getAsyncRedis(`bidCreationObject-${req.payload.aud}`).catch((err) =>
-          console.error(err)
+        await getAsyncRedis(`bidCreationObject-${req.payload.aud}`).catch(
+          (err) => console.error(err)
         )
       );
-      // copmprobamos si hay algun objeto de lote vacio, quiere decir que ese
+      // Comprobamos si hay algun objeto de lote vacio, quiere decir que ese
       // lote no se ha seguido creando y lo borramos antes de añadir un nuevo lote
       removeEmptyObjects(bidCreationObject);
       // Se  añade al array de ids el nuevo id creado para el lote y se crea su objeto
@@ -156,7 +156,7 @@ module.exports = {
     }
   },
 
-  createBid: async (req, res, next) => {
+  /* createBid: async (req, res, next) => {
     let {
       _id,
       title,
@@ -169,6 +169,10 @@ module.exports = {
       starting_time,
       end_time,
     } = req.body;
+
+    // Comprobamos que los documentos almacenados en redis coinciden con los lotes llegados al crear la cartera
+    // para eliminar archivos subidos innecearios
+    const { populatedBids } = populateBidDocuments({ bids, _id });
 
     const bidExists = await Bid.findById(_id).lean();
     if (bidExists) {
@@ -213,6 +217,76 @@ module.exports = {
         bids,
         starting_time,
         end_time,
+      }).save(async (err, bid) => {
+        if (err) {
+          console.log(err);
+          return res.status(500).json(err);
+        }
+        let jsonBid = JSON.parse(JSON.stringify(bid));
+        initilizeRedisBidObject(jsonBid);
+
+        sendNewBidEmail(jsonBid);
+
+        res.status(200).json(bid);
+      });
+    }
+  }, */
+
+  createBid: async (req, res, next) => {
+    let { _id, title, globalIcons, bids, seller, starting_time, end_time } =
+      req.body;
+
+    // Comprobamos que los documentos almacenados en redis coinciden con los lotes llegados al crear la cartera
+    // para eliminar archivos subidos innecearios
+    const { populatedBids, documents } = await populateBidDocuments({
+      user: req.payload.aud,
+      bids,
+      _id,
+    });
+
+    console.log("populatedBids", populatedBids);
+    console.log();
+    const bidExists = await Bid.findById(_id).lean();
+    if (bidExists) {
+      /* let docs = bidExists.bids.map((lote) => lote.documents);
+      docs = docs.flat();
+      bids = bids.map((lote, index) => {
+        lote.documents = docs[index];
+        return lote;
+      }); */
+
+      Bid.findByIdAndUpdate(
+        _id,
+        {
+          title,
+          globalIcons,
+          bids: populatedBids,
+          seller,
+          starting_time,
+          end_time,
+        },
+        { new: true },
+        (err, bid) => {
+          if (err) res.status(500).json(err);
+          initilizeRedisBidObject(bid);
+
+          if (!bid.notifications.created) {
+            let jsonBid = JSON.parse(JSON.stringify(bid));
+            sendNewBidEmail(jsonBid);
+          }
+          res.status(200).json(bid);
+        }
+      );
+    } else {
+      new Bid({
+        _id,
+        title,
+        seller,
+        globalIcons,
+        bids: populatedBids,
+        starting_time,
+        end_time,
+        documents,
       }).save(async (err, bid) => {
         if (err) {
           console.log(err);
@@ -417,6 +491,30 @@ const removeEmptyObjects = (bidCreationObject) => {
       );
     }
   });
+};
+
+const populateBidDocuments = async ({ user, bids, _id }) => {
+  // Obtenemos los documentos subidos de redis
+  const bidCreationObject = JSON.parse(
+    await getAsyncRedis(`bidCreationObject-${user}`).catch((err) =>
+      console.error(err)
+    )
+  );
+
+  const tempBids = bids.map((bid) => {
+    if (bidCreationObject.subbids?.includes(bid._id)) {
+      !Array.isArray(bid.documents) && (bid.documents = []);
+      bid.documents = bid.documents.concat(bidCreationObject[bid._id].documents);
+    }
+    return bid;
+  });
+
+  const tempDocuments =
+    String(bidCreationObject.id) === String(_id) && bidCreationObject.documents
+      ? bidCreationObject.documents
+      : [];
+
+  return { populatedBids: tempBids, documents: tempDocuments };
 };
 /* 
 TODO
