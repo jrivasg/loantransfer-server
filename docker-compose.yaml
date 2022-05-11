@@ -3,51 +3,30 @@ networks:
   internal_network:
     external: true
 services:
-  servidorloantransfer:
+  servidornplbroker:
     image: node:lts-alpine
-    container_name: "servidorloantransfer"
+    container_name: "servidornplbroker"
     stdin_open: true
     restart: always
     expose:
-      - "3001"
+      - "3000"
     ports:
-      - "3001:3000"
+      - "3000:3000"
     environment:
       - "PORT=3000"
     volumes:
-      - ./:/development/servidorloantransfer
-      - ./uploads:/home/aplicaciones/uploadsloantransfer
-    working_dir: /development/servidorloantransfer
+      - ./:/development/servidornplbroker
+      - ./uploads:/home/aplicaciones/uploadsnplbroker
+    working_dir: /development/servidornplbroker
     command: sh -c "npm install && npm install -g pm2 && pm2-runtime ecosystem.config.js --env production"
     #command: sh -c "npm install && npm install -g pm2 && pm2-runtime ecosystem.config.js --watch --env development"
     #command: sh -c "NODE_ENV=development npm run dev"
     links:
-      - mongodbloantransfer
       - redisloantransfer
     networks:
       - internal_network
     depends_on:
-      - mongodbloantransfer
       - redisloantransfer
-  mongodbloantransfer:
-    image: mongo:4.4
-    container_name: "mongodbloantransfer"
-    restart: always
-    volumes:
-      #- ./data/db:/home/aplicaciones/databases/mongodbData/mongodbSubastas
-      - ./data/db:/data/db
-    environment:
-      - MONGO_DATA_DIR=/data/db
-      - MONGO_LOG_DIR=/dev/null
-  #    MONGO_INITDB_DATABASE: "subastas_loantransfer"
-  #    #MONGO_INITDB_ROOT_USERNAME: user
-  #    #MONGO_INITDB_ROOT_PASSWORD: pass
-    ports:
-      - 3400:27017
-    networks:
-      - internal_network
-    #command: mongod --logpath=/dev/null --auth # --quiet
-    command: "--logpath=/dev/null"
   redisloantransfer:
     container_name: "redisloantransfer"
     restart: always
