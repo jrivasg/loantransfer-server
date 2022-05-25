@@ -116,7 +116,7 @@ module.exports = {
       // lote no se ha seguido creando y lo borramos antes de añadir un nuevo lote
       removeEmptyObjects(bidCreationObject);
       // Se  añade al array de ids el nuevo id creado para el lote y se crea su objeto
-      (bidCreationObject.subbids ??= []).push(subbid_id);
+      (bidCreationObject.subbids= bidCreationObject.subbids || []).push(subbid_id);
       bidCreationObject[subbid_id] = {};
       //console.log('bidCreationObject', bidCreationObject)
       client.SET(
