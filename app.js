@@ -6,8 +6,8 @@ const server =
   process.env.NODE_ENV === "production"
     ? require("https").createServer(
         {
-          key: fs.readFileSync("./certs/privkeyapploan.pem"),
-          cert: fs.readFileSync("./certs/fullchainapploan.pem"),
+          key: fs.readFileSync("./certs/lives/npl-broker.com/privkey.pem"),
+          cert: fs.readFileSync("./certs/lives/npl-broker.com/fullchain.pem"),
         },
         app
       )

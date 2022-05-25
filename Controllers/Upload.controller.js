@@ -46,14 +46,14 @@ module.exports = {
       bid_id &&
         !subbid_id &&
         req.files.forEach(async (file) => {
-          (bidCreationObject.documents ??= []).push(file);
+          (bidCreationObject.documents = bidCreationObject.documents || []).push(file);
         });
 
       // Si existen id de cartera y lote, es que estamos guardando archivos para un lote, se crea o añade
       bid_id &&
         subbid_id &&
         req.files.forEach(async (file) =>
-          (bidCreationObject[subbid_id].documents ??= []).push(file)
+          (bidCreationObject[subbid_id].documents = bidCreationObject[subbid_id].documents || []).push(file)
         );
 
       client.SET(

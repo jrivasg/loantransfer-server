@@ -9,14 +9,15 @@ services:
     stdin_open: true
     restart: always
     expose:
-      - "3000"
+      - "3002"
     ports:
-      - "3000:3000"
+      - "3002:3000"
     environment:
       - "PORT=3000"
     volumes:
       - ./:/development/servidornplbroker
       - ./uploads:/home/aplicaciones/uploadsnplbroker
+      - /etc/letsencrypt/:/development/servidornplbroker/certs
     working_dir: /development/servidornplbroker
     command: sh -c "npm install && npm install -g pm2 && pm2-runtime ecosystem.config.js --env production"
     #command: sh -c "npm install && npm install -g pm2 && pm2-runtime ecosystem.config.js --watch --env development"
