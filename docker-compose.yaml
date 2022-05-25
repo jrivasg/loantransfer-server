@@ -18,6 +18,11 @@ services:
       - ./:/development/servidorloantransfer
       - ./uploads:/home/aplicaciones/uploadsloantransfer
     working_dir: /development/servidorloantransfer
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "3"
     command: sh -c "npm install && npm install -g pm2 && pm2-runtime ecosystem.config.js --env production"
     #command: sh -c "npm install && npm install -g pm2 && pm2-runtime ecosystem.config.js --watch --env development"
     #command: sh -c "NODE_ENV=development npm run dev"
