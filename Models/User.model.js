@@ -35,14 +35,6 @@ const UserSchema = new Schema(
       type: Boolean,
       default: false,
     },
-    openBid: {
-      type: Boolean,
-      default: false,
-    },
-    admin: {
-      type: Boolean,
-      default: false,
-    },
     chat: [{ type: Schema.Types.ObjectId, ref: "chat" }],
     sale: [{ type: Schema.Types.ObjectId, ref: "sale" }],
     lastLoginAt: { type: Date },

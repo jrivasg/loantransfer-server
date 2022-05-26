@@ -88,5 +88,4 @@ README.md
 
 uploads/
 certs/
-fullchainloan.pem
-privkeyloan.pem
+docker-compose.yaml
