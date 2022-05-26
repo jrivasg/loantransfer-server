@@ -17,6 +17,7 @@ services:
     volumes:
       - ./:/development/servidorloantransfer
       - ./uploads:/home/aplicaciones/uploadsloantransfer
+      - /etc/letsencrypt/:/development/servidorloantransfer/certs
     working_dir: /development/servidorloantransfer
     logging:
       driver: "json-file"
