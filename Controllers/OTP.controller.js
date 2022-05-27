@@ -91,7 +91,7 @@ module.exports = {
       });
       res
         .status(200)
-        .send({ message: "Email envido", verification_key: encoded });
+        .send({ message: "Email de verificación enviado", verification_key: encoded });
     } catch (err) {
       return res.status(400).send({ error: err.message });
     }
