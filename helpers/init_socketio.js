@@ -9,7 +9,7 @@ module.exports = (server) => {
     },
   });
 
-  const pubClient = createClient({ host: "redisloantransfer", port: 6379 });
+  const pubClient = createClient({ host: "redisdb-nplloan", port: 6379 });
   const subClient = pubClient.duplicate();
   io.adapter(redisAdapter(pubClient, subClient));
 
